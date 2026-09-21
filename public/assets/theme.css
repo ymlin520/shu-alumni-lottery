@@ -1,0 +1,138 @@
+:root {
+  --bg: #0b1730;
+  --bg2: #10223f;
+  --card: rgba(18, 36, 68, 0.78);
+  --line: rgba(232, 190, 96, 0.28);
+  --line-soft: rgba(255, 255, 255, 0.08);
+  --gold: #e9b949;
+  --gold-hi: #f8dc8a;
+  --gold-lo: #a9791d;
+  --text: #f3f1ea;
+  --muted: #a9b4c9;
+  --danger: #ff7a7a;
+  --ok: #7fdcaa;
+  --radius: 22px;
+  --glow1: #1f3b6d;
+  --glow2: #16305a;
+  --btn-text: #3b2503;
+  --btn-radius: 16px;
+  --input-bg: rgba(5, 14, 32, 0.55);
+  --ring-a: #fff0b5;
+  --ring-b: #e9b949;
+  --ring-c: #9b6a12;
+  --drum-a: #1d3a66;
+  --drum-b: #081328;
+  --ball-1: #e9b949;
+  --ball-2: #52b8d6;
+  --ball-3: #e0587c;
+  --ball-4: #4fbf7d;
+  --ball-5: #8f7ae6;
+  --tray-ball: #f1c75b;
+  --reg-title-size: clamp(28px, 6vw, 40px);
+  --draw-title-size: clamp(24px, 3.2vw, 36px);
+  --winner-size: clamp(44px, 7vw, 72px);
+  --machine-size: min(48vh, 82vw, 520px);
+  --font: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  font-family: var(--font);
+}
+[data-t] { white-space: pre-line; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--glow1) 0%, transparent 60%),
+    radial-gradient(800px 500px at 100% 100%, var(--glow2) 0%, transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+a { color: var(--gold-hi); }
+button { font: inherit; cursor: pointer; }
+input, select { font: inherit; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  max-width: 1100px; margin: 0 auto; padding: 22px 20px;
+}
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 20px; letter-spacing: .12em; }
+.brand-mark {
+  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--gold); color: var(--gold); font-size: 20px;
+  box-shadow: 0 0 18px rgba(233, 185, 73, .25) inset;
+}
+.pill {
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  color: var(--text); background: rgba(255,255,255,.03); font-size: 14px; text-decoration: none;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, .35);
+  backdrop-filter: blur(6px);
+}
+.btn-gold {
+  border: 0; border-radius: var(--btn-radius); padding: 16px 28px;
+  font-size: 20px; font-weight: 800; letter-spacing: .3em; color: var(--btn-text);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, color-mix(in srgb, var(--gold) 85%, black));
+  box-shadow: 0 6px 0 var(--gold-lo), 0 16px 30px rgba(233, 185, 73, .25);
+  transition: transform .08s, box-shadow .08s, filter .2s;
+}
+.btn-gold:hover { filter: brightness(1.05); }
+.btn-gold:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--gold-lo), 0 8px 18px rgba(233, 185, 73, .2); }
+.btn-gold:disabled { filter: grayscale(.6) brightness(.7); cursor: not-allowed; transform: none; }
+.btn-ghost {
+  border: 1px solid var(--line); background: transparent; color: var(--text);
+  border-radius: 12px; padding: 9px 16px; font-size: 14px;
+}
+.btn-ghost:hover { background: rgba(233,185,73,.08); }
+.btn-danger { border-color: rgba(255,122,122,.4); color: var(--danger); }
+
+.field { display: grid; gap: 8px; margin-bottom: 18px; }
+.field label, .label { font-weight: 700; font-size: 15px; }
+.req { color: var(--gold); margin-left: 4px; }
+.opt { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 6px; }
+.input {
+  width: 100%; padding: 14px 16px; border-radius: 14px; font-size: 16px;
+  color: var(--text); background: var(--input-bg);
+  border: 1px solid rgba(255,255,255,.14); outline: none; transition: border-color .15s, box-shadow .15s;
+}
+.input::placeholder { color: #6f7d97; }
+.input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(233,185,73,.18); }
+.input.bad { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,122,122,.15); }
+.hint { color: var(--muted); font-size: 13px; }
+
+.seg { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--input-bg); border: 1px solid rgba(255,255,255,.1); }
+.seg button {
+  border: 0; background: transparent; color: var(--muted); padding: 9px 16px; border-radius: 10px; font-size: 15px;
+}
+.seg button.on { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); color: var(--btn-text); font-weight: 700; }
+
+.check { display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 15px; }
+.check input { width: 20px; height: 20px; accent-color: var(--gold); }
+
+.msg { border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 16px; }
+.msg.err { background: rgba(255,122,122,.1); border: 1px solid rgba(255,122,122,.35); color: #ffc2c2; }
+.msg.ok { background: rgba(127,220,170,.1); border: 1px solid rgba(127,220,170,.35); color: #c5f3d9; }
+
+/* 樂透彩球 */
+.ball {
+  position: absolute; border-radius: 50%;
+  box-shadow: inset -6px -8px 14px rgba(0,0,0,.28), 0 6px 12px rgba(0,0,0,.35);
+}
+.ball::after {
+  content: ""; position: absolute; left: 18%; top: 12%; width: 38%; height: 30%; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255,255,255,.85), rgba(255,255,255,0));
+}
+.c-gold  { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-1) 22%, white), var(--ball-1) 45%, color-mix(in srgb, var(--ball-1) 45%, black) 100%); }
+.c-teal  { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-2) 22%, white), var(--ball-2) 45%, color-mix(in srgb, var(--ball-2) 45%, black) 100%); }
+.c-pink  { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-3) 22%, white), var(--ball-3) 45%, color-mix(in srgb, var(--ball-3) 45%, black) 100%); }
+.c-green { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-4) 22%, white), var(--ball-4) 45%, color-mix(in srgb, var(--ball-4) 45%, black) 100%); }
+.c-purple{ background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-5) 22%, white), var(--ball-5) 45%, color-mix(in srgb, var(--ball-5) 45%, black) 100%); }
+
+@media (max-width: 640px) {
+  .topbar { padding: 16px; }
+  .brand { font-size: 17px; }
+  .brand-mark { width: 38px; height: 38px; }
+}

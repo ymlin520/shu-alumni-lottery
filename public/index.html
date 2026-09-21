@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>世新校友抽獎登記</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎱</text></svg>">
+<link rel="stylesheet" href="/assets/theme.css">
+<style>
+  [hidden] { display: none !important; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 60px; }
+  .hero { position: relative; text-align: center; padding: 18px 0 30px; }
+  .hero h1 { font-size: var(--reg-title-size); margin: 0 0 10px; letter-spacing: .12em; }
+  .hero h1 span { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .hero p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
+  .deco { position: absolute; inset: 0; pointer-events: none; }
+  .deco .ball { animation: float 6s ease-in-out infinite; opacity: .9; }
+  @keyframes float { 50% { transform: translateY(-12px); } }
+  .form { padding: 30px 28px; }
+  .form h2 { margin: 0 0 6px; font-size: 20px; }
+  .form .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin: 8px 0 16px; }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+  .former { display: none; margin-top: 12px; }
+  .former.show { display: grid; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(-4px); } }
+  .submit { width: 100%; margin-top: 8px; }
+  .privacy { color: var(--muted); font-size: 12.5px; line-height: 1.7; margin-top: 18px; text-align: center; }
+  .done { padding: 44px 28px; text-align: center; }
+  .done .big-ball { position: relative; width: 120px; height: 120px; margin: 0 auto 22px; display: grid; place-items: center; animation: drop .7s cubic-bezier(.3,1.6,.5,1); }
+  .done .big-ball span { position: relative; z-index: 1; font-weight: 900; color: var(--btn-text); font-size: 22px; }
+  @keyframes drop { from { transform: translateY(-80px) scale(.6); opacity: 0; } }
+  .done h2 { margin: 0 0 10px; font-size: 26px; letter-spacing: .1em; }
+  .done p { color: var(--muted); line-height: 1.8; margin: 0; }
+  .done .no { display: inline-block; margin-top: 16px; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
+  .closed { padding: 44px 28px; text-align: center; }
+  .closed h2 { margin: 0 0 10px; }
+  .closed p { color: var(--muted); margin: 0; }
+  @media (max-width: 520px) { .row2 { grid-template-columns: 1fr; gap: 0; } .form { padding: 24px 18px; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">✦</div><span data-t="reg.brand">世新校友抽獎</span></div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <div class="deco" aria-hidden="true">
+      <div class="ball c-gold"   style="width:34px;height:34px;left:2%;top:10%"></div>
+      <div class="ball c-teal"   style="width:22px;height:22px;left:12%;top:62%;animation-delay:-2s"></div>
+      <div class="ball c-pink"   style="width:26px;height:26px;right:4%;top:18%;animation-delay:-1s"></div>
+      <div class="ball c-purple" style="width:18px;height:18px;right:14%;top:70%;animation-delay:-3s"></div>
+    </div>
+    <h1><span data-t="reg.title">世新大學校友抽獎活動</span></h1>
+    <p data-t="reg.intro">填寫校友資料完成登記，即可參加現場抽獎。
+每人限登記一次，祝您好運！</p>
+  </section>
+
+  <section class="card form" id="formCard">
+    <h2 data-t="reg.formTitle">校友登記</h2>
+    <p class="sub" data-t="reg.formSub">標示 * 為必填</p>
+    <div id="err" class="msg err" hidden></div>
+    <form id="f" novalidate>
+      <div class="field">
+        <span class="label"><span data-t="reg.idType">證件類別</span><span class="req">*</span></span>
+        <div class="seg" role="radiogroup">
+          <button type="button" class="on" data-type="twid" data-t="reg.twid">身分證字號</button>
+          <button type="button" data-type="passport" data-t="reg.passport">護照號碼</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="idNo"><span id="idLabel">身分證字號</span><span class="req">*</span></label>
+        <input class="input" id="idNo" name="idNo" autocomplete="off" maxlength="20" placeholder="例：A123456789" style="text-transform:uppercase">
+        <span class="hint" data-t="reg.idHint">僅作為身分核對與避免重複登記使用，不會公開顯示。</span>
+      </div>
+      <div class="field">
+        <label for="name"><span data-t="reg.name">姓名</span><span class="req">*</span></label>
+        <input class="input" id="name" name="name" autocomplete="name" maxlength="40" data-tp="reg.namePh" placeholder="請填寫目前的姓名">
+        <label class="check" style="margin-top:6px"><input type="checkbox" id="renamed"> <span data-t="reg.renamed">我曾改過姓名</span></label>
+        <div class="field former" id="formerWrap">
+          <label for="formerName"><span data-t="reg.former">改名前姓名（在校時使用的姓名）</span><span class="req">*</span></label>
+          <input class="input" id="formerName" maxlength="40" data-tp="reg.formerPh" placeholder="請填寫改名前的姓名">
+        </div>
+      </div>
+      <div class="divider" data-t="reg.optional">以下為選填</div>
+      <div class="row2">
+        <div class="field">
+          <label for="dept"><span data-t="reg.dept">系所</span><span class="opt" data-t="reg.optTag">選填</span></label>
+          <input class="input" id="dept" maxlength="60" data-tp="reg.deptPh" placeholder="例：新聞學系">
+        </div>
+        <div class="field">
+          <label for="studentNo"><span data-t="reg.studentNo">學號</span><span class="opt" data-t="reg.optTag">選填</span></label>
+          <input class="input" id="studentNo" maxlength="20" data-tp="reg.studentNoPh" placeholder="例：A10501234">
+        </div>
+      </div>
+      <button class="btn-gold submit" id="submit" type="submit" data-t="reg.submit">送出登記</button>
+      <p class="privacy" data-t="reg.privacy">您提供的個人資料僅用於本次校友抽獎活動之身分核對與得獎聯繫，活動結束後依規定銷毀。</p>
+    </form>
+  </section>
+
+  <section class="card done" id="done" hidden>
+    <div class="big-ball ball c-gold"><span>✓</span></div>
+    <h2 data-t="reg.doneTitle">登記完成</h2>
+    <p id="doneText"></p>
+    <div class="no" id="doneNo"></div>
+  </section>
+
+  <section class="card closed" id="closed" hidden>
+    <h2 data-t="reg.closedTitle">登記已截止</h2>
+    <p data-t="reg.closedText">本次活動已停止登記，感謝您的關注。</p>
+  </section>
+</main>
+
+<script src="/assets/design.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let idType = 'twid';
+let doneData = { name: '王小明', no: 'A0001' };
+
+function showView(v) {
+  $('#formCard').hidden = v !== 'form';
+  $('#done').hidden = v !== 'done';
+  $('#closed').hidden = v !== 'closed';
+}
+function renderDynamic() {
+  document.title = T('reg.title');
+  $('#idLabel').textContent = T(idType === 'twid' ? 'reg.twid' : 'reg.passport');
+  $('#idNo').placeholder = T(idType === 'twid' ? 'reg.twidPh' : 'reg.passportPh');
+  $('#doneText').textContent = T('reg.doneText', doneData);
+  $('#doneNo').textContent = T('reg.doneNo', doneData);
+}
+renderDynamic();
+document.addEventListener('designchange', renderDynamic);
+document.addEventListener('previewview', (e) => showView(e.detail));
+
+if (!DESIGN_PREVIEW) {
+  fetch('/api/status').then(r => r.json()).then(s => { if (!s.open) showView('closed'); }).catch(() => {});
+}
+
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  idType = b.dataset.type;
+  renderDynamic();
+  $('#idNo').focus();
+}));
+
+$('#renamed').addEventListener('change', (e) => {
+  $('#formerWrap').classList.toggle('show', e.target.checked);
+  if (e.target.checked) $('#formerName').focus();
+});
+
+function showErr(text, field) {
+  const box = $('#err');
+  box.textContent = text; box.hidden = false;
+  document.querySelectorAll('.input').forEach(i => i.classList.remove('bad'));
+  if (field) { const el = $('#' + field); el.classList.add('bad'); el.focus(); }
+  box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+document.querySelectorAll('.input').forEach(i => i.addEventListener('input', () => i.classList.remove('bad')));
+
+$('#f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('#err').hidden = true;
+  const body = {
+    idType,
+    idNo: $('#idNo').value.trim().toUpperCase(),
+    name: $('#name').value.trim(),
+    renamed: $('#renamed').checked,
+    formerName: $('#formerName').value.trim(),
+    dept: $('#dept').value.trim(),
+    studentNo: $('#studentNo').value.trim(),
+  };
+  if (DESIGN_PREVIEW) { doneData = { name: body.name || '王小明', no: 'A0001' }; renderDynamic(); return showView('done'); } // 預覽不送出
+  if (!body.idNo) return showErr('請填寫' + T(idType === 'twid' ? 'reg.twid' : 'reg.passport') + '。', 'idNo');
+  if (!body.name) return showErr('請填寫' + T('reg.name') + '。', 'name');
+  if (body.renamed && !body.formerName) return showErr('勾選曾改名，請填寫改名前的姓名。', 'formerName');
+  const btn = $('#submit'); btn.disabled = true; btn.textContent = '送出中…';
+  try {
+    const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) return showErr(d.error || '送出失敗，請稍後再試。', d.field);
+    doneData = { name: d.name, no: d.no };
+    renderDynamic();
+    showView('done');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch { showErr('網路連線異常，請稍後再試。'); }
+  finally { btn.disabled = false; btn.textContent = T('reg.submit'); }
+});
+</script>
+</body>
+</html>
