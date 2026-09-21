@@ -17,9 +17,7 @@
   /* ===== 抽獎舞台（整頁） ===== */
   .stage { min-height: calc(100vh - 90px); padding: 0 16px 12px; text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
   .stage:fullscreen { min-height: 100vh; justify-content: center; background: url(/assets/bg-deco.svg) center / cover no-repeat, radial-gradient(900px 560px at 50% 40%, var(--glow1) 0%, transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2)); }
-  .stage h2 { margin: 8px 0 2px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
-  .draw-ribbon .ribbon { font-size: clamp(20px, 2.6vw, 32px); }
-  .stage .en-sub { margin-top: 8px; font-size: clamp(11px, 1.1vw, 14px); }
+  .stage h2 { margin: 18px 0 4px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
   .hub-logo { width: 74%; height: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
   .hub-text:empty { display: none; }
   .hub-text { position: absolute; bottom: 12%; left: 0; right: 0; font-size: calc(var(--size) * .022); }
@@ -103,8 +101,6 @@
 </section>
 
 <main class="stage" id="stage" hidden>
-  <div class="ribbon-wrap draw-ribbon"><div class="ribbon"><span data-t="draw.ribbon">校友返校日</span></div></div>
-  <div class="en-sub" data-t="draw.en">Alumni Homecoming Day</div>
   <h2 data-t="draw.heading">今天的幸運校友是誰？</h2>
   <p class="left"><span data-t="draw.leftPre">還有</span> <b id="remain">0</b> <span data-t="draw.leftPost">位校友待抽</span></p>
   <div class="machine">

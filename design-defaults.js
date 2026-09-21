@@ -77,8 +77,6 @@ const texts = [
   { key: 'reg.closedText', group: '登記頁', label: '截止畫面內容', default: '本次活動已停止登記，感謝您的關注。' },
   // 抽獎頁
   { key: 'draw.brand', group: '抽獎頁', label: '左上角名稱', default: '世新大學 70 週年' },
-  { key: 'draw.ribbon', group: '抽獎頁', label: '緞帶文字', default: '校友返校日' },
-  { key: 'draw.en', group: '抽獎頁', label: '英文副標', default: 'Alumni Homecoming Day' },
   { key: 'draw.heading', group: '抽獎頁', label: '大標題', default: '今天的幸運校友是誰？' },
   { key: 'draw.leftPre', group: '抽獎頁', label: '剩餘人數（數字前）', default: '還有' },
   { key: 'draw.leftPost', group: '抽獎頁', label: '剩餘人數（數字後）', default: '位校友待抽' },
