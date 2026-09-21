@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>世新校友抽獎登記</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎱</text></svg>">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
 <link rel="stylesheet" href="/assets/theme.css">
 <style>
   [hidden] { display: none !important; }
   .wrap { max-width: 640px; margin: 0 auto; padding: 0 16px 60px; }
-  .hero { position: relative; text-align: center; padding: 18px 0 30px; }
-  .hero h1 { font-size: var(--reg-title-size); margin: 0 0 10px; letter-spacing: .12em; }
+  .hero { position: relative; text-align: center; padding: 4px 0 28px; }
+  .hero-logo { display: block; width: min(300px, 66vw); height: auto; margin: 0 auto -22px; filter: drop-shadow(0 14px 26px rgba(30,0,3,.55)); }
+  .hero .ribbon-wrap { position: relative; }
+  .hero h1 { font-size: var(--reg-title-size); margin: 22px 0 8px; letter-spacing: .14em; font-family: var(--font-display); }
   .hero h1 span { background: linear-gradient(180deg, var(--gold-hi), var(--gold)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .hero p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.7; }
-  .deco { position: absolute; inset: 0; pointer-events: none; }
-  .deco .ball { animation: float 6s ease-in-out infinite; opacity: .9; }
+  .hero p { margin: 0; color: var(--text); font-size: 16px; line-height: 1.7; text-shadow: 0 1px 8px rgba(60,0,4,.9), 0 0 2px rgba(60,0,4,.8); }
   @keyframes float { 50% { transform: translateY(-12px); } }
   .form { padding: 30px 28px; }
-  .form h2 { margin: 0 0 6px; font-size: 20px; }
+  .form h2 { margin: 0 0 6px; font-size: 22px; font-family: var(--font-display); letter-spacing: .1em; color: var(--gold-hi); }
   .form .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .divider { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin: 8px 0 16px; }
@@ -31,7 +31,7 @@
   .done .big-ball { position: relative; width: 120px; height: 120px; margin: 0 auto 22px; display: grid; place-items: center; animation: drop .7s cubic-bezier(.3,1.6,.5,1); }
   .done .big-ball span { position: relative; z-index: 1; font-weight: 900; color: var(--btn-text); font-size: 22px; }
   @keyframes drop { from { transform: translateY(-80px) scale(.6); opacity: 0; } }
-  .done h2 { margin: 0 0 10px; font-size: 26px; letter-spacing: .1em; }
+  .done h2 { margin: 0 0 10px; font-size: 28px; letter-spacing: .12em; font-family: var(--font-display); color: var(--gold-hi); }
   .done p { color: var(--muted); line-height: 1.8; margin: 0; }
   .done .no { display: inline-block; margin-top: 16px; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
   .closed { padding: 44px 28px; text-align: center; }
@@ -42,17 +42,14 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">✦</div><span data-t="reg.brand">世新校友抽獎</span></div>
+  <div class="brand"><img class="brand-logo" src="/assets/logo-70-sm.webp" alt="世新大學 70 週年"><span data-t="reg.brand">世新大學 70 週年</span></div>
 </header>
 
 <main class="wrap">
   <section class="hero">
-    <div class="deco" aria-hidden="true">
-      <div class="ball c-gold"   style="width:34px;height:34px;left:2%;top:10%"></div>
-      <div class="ball c-teal"   style="width:22px;height:22px;left:12%;top:62%;animation-delay:-2s"></div>
-      <div class="ball c-pink"   style="width:26px;height:26px;right:4%;top:18%;animation-delay:-1s"></div>
-      <div class="ball c-purple" style="width:18px;height:18px;right:14%;top:70%;animation-delay:-3s"></div>
-    </div>
+    <img class="hero-logo" src="/assets/logo-70.webp" alt="世新大學 70 週年">
+    <div class="ribbon-wrap"><div class="ribbon"><span data-t="reg.ribbon">校友返校日</span></div></div>
+    <div class="en-sub" data-t="reg.en">Alumni Homecoming Day</div>
     <h1><span data-t="reg.title">世新大學校友抽獎活動</span></h1>
     <p data-t="reg.intro">填寫校友資料完成登記，即可參加現場抽獎。
 每人限登記一次，祝您好運！</p>

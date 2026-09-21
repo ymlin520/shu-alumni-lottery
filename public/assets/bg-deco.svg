@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#f7dfa0" stop-opacity="0"/>
+      <stop offset=".45" stop-color="#f7dfa0" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#d8ac5a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="goldBand" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#e9c77f" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#e9c77f" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#e9c77f" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="silkDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3d0206" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#3d0206" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="silkLight" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d91a24" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#d91a24" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="sun" cx=".35" cy=".35" r=".75">
+      <stop offset="0" stop-color="#f3d58e" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#a8762c" stop-opacity=".35"/>
+    </radialGradient>
+    <linearGradient id="fadeV" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e2bd72" stop-opacity="0"/>
+      <stop offset=".35" stop-color="#e2bd72" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#e2bd72" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 中央同心金圈 -->
+  <g fill="none" stroke="#e9c77f">
+    <circle cx="800" cy="400" r="300" stroke-opacity=".16"/>
+    <circle cx="800" cy="400" r="360" stroke-opacity=".12"/>
+    <circle cx="800" cy="400" r="425" stroke-opacity=".10"/>
+    <circle cx="800" cy="400" r="495" stroke-opacity=".08"/>
+    <circle cx="800" cy="400" r="570" stroke-opacity=".06"/>
+  </g>
+
+  <!-- 左側斜向紅綢 -->
+  <path d="M-80 220 L420 900 L260 900 L-80 420 Z" fill="url(#silkDark)"/>
+  <path d="M-80 120 L520 900 L470 900 L-80 190 Z" fill="url(#silkLight)"/>
+  <path d="M-80 300 L300 900 L285 900 L-80 330 Z" fill="#f0cf86" fill-opacity=".10"/>
+
+  <!-- 右側大斜塊 -->
+  <path d="M1250 0 L1600 0 L1600 900 L1120 900 Z" fill="url(#silkDark)" opacity=".7"/>
+
+  <!-- 由左下往右上的金色光帶 -->
+  <path d="M-40 760 C 420 640, 900 560, 1640 180 L1640 230 C 900 610, 420 690, -40 800 Z" fill="url(#goldBand)"/>
+  <path d="M-40 780 C 420 660, 900 580, 1640 200" fill="none" stroke="url(#gold)" stroke-width="2.2"/>
+  <path d="M-40 820 C 480 700, 980 620, 1640 250" fill="none" stroke="url(#gold)" stroke-width="1" opacity=".6"/>
+
+  <!-- 右側細金直線 -->
+  <g stroke="url(#fadeV)" stroke-width="1.2">
+    <line x1="1300" y1="0" x2="1300" y2="900"/>
+    <line x1="1314" y1="0" x2="1314" y2="900"/>
+    <line x1="1326" y1="0" x2="1326" y2="900"/>
+    <line x1="1336" y1="0" x2="1336" y2="900"/>
+    <line x1="1368" y1="0" x2="1368" y2="900"/>
+    <line x1="1374" y1="0" x2="1374" y2="900"/>
+  </g>
+
+  <!-- 右上金色半圓 -->
+  <circle cx="1600" cy="230" r="170" fill="url(#sun)"/>
+
+  <!-- 底部絲綢波紋 -->
+  <g fill="none" stroke-linecap="round">
+    <path d="M-40 850 C 300 760, 560 900, 900 820 S 1400 760, 1660 830" stroke="#f0cf86" stroke-opacity=".22" stroke-width="1.4"/>
+    <path d="M-40 875 C 320 800, 600 930, 940 850 S 1420 790, 1660 860" stroke="#f0cf86" stroke-opacity=".14" stroke-width="1"/>
+    <path d="M-40 900 C 360 840, 640 950, 980 880 S 1440 820, 1660 890" stroke="#ff4a52" stroke-opacity=".20" stroke-width="18"/>
+  </g>
+
+  <!-- 金色光點 -->
+  <g fill="#f7dfa0">
+    <circle cx="140" cy="720" r="2" opacity=".7"/>
+    <circle cx="210" cy="760" r="1.4" opacity=".6"/>
+    <circle cx="95" cy="800" r="1.2" opacity=".5"/>
+    <circle cx="330" cy="690" r="1.6" opacity=".55"/>
+    <circle cx="260" cy="820" r="2.2" opacity=".5"/>
+    <circle cx="1180" cy="120" r="1.6" opacity=".5"/>
+    <circle cx="1450" cy="520" r="1.4" opacity=".45"/>
+    <circle cx="560" cy="130" r="1.2" opacity=".4"/>
+    <circle cx="980" cy="760" r="1.8" opacity=".45"/>
+  </g>
+</svg>

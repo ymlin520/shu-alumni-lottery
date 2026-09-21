@@ -1,38 +1,47 @@
+/* 世新 70 週年校友返校日：紅金配色
+   這裡是預設值；/design 設計後台可以覆寫所有 --變數 */
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+TC:wght@600;900&display=swap');
+
 :root {
-  --bg: #0b1730;
-  --bg2: #10223f;
-  --card: rgba(18, 36, 68, 0.78);
-  --line: rgba(232, 190, 96, 0.28);
-  --line-soft: rgba(255, 255, 255, 0.08);
-  --gold: #e9b949;
-  --gold-hi: #f8dc8a;
-  --gold-lo: #a9791d;
-  --text: #f3f1ea;
-  --muted: #a9b4c9;
-  --danger: #ff7a7a;
-  --ok: #7fdcaa;
-  --radius: 22px;
-  --glow1: #1f3b6d;
-  --glow2: #16305a;
-  --btn-text: #3b2503;
-  --btn-radius: 16px;
-  --input-bg: rgba(5, 14, 32, 0.55);
-  --ring-a: #fff0b5;
-  --ring-b: #e9b949;
-  --ring-c: #9b6a12;
-  --drum-a: #1d3a66;
-  --drum-b: #081328;
-  --ball-1: #e9b949;
-  --ball-2: #52b8d6;
-  --ball-3: #e0587c;
-  --ball-4: #4fbf7d;
-  --ball-5: #8f7ae6;
-  --tray-ball: #f1c75b;
-  --reg-title-size: clamp(28px, 6vw, 40px);
-  --draw-title-size: clamp(24px, 3.2vw, 36px);
-  --winner-size: clamp(44px, 7vw, 72px);
-  --machine-size: min(48vh, 82vw, 520px);
+  --bg: #6d0a10;
+  --bg2: #4e0509;
+  --card: rgba(74, 6, 12, 0.62);
+  --line: rgba(232, 190, 110, 0.38);
+  --line-soft: rgba(255, 220, 170, 0.14);
+  --gold: #d8ac5a;
+  --gold-hi: #f7e3b0;
+  --gold-lo: #8a5a1c;
+  --text: #fbeed6;
+  --muted: #e2bba3;
+  --danger: #ffd166;
+  --ok: #b8f0c8;
+  --radius: 20px;
+  --glow1: #c0161f;
+  --glow2: #8f0d14;
+  --btn-text: #7a0c12;
+  --btn-radius: 14px;
+  --input-bg: rgba(40, 2, 6, 0.45);
+  --ring-a: #fff4d2;
+  --ring-b: #d8ac5a;
+  --ring-c: #8a5a1c;
+  --drum-a: #b3141c;
+  --drum-b: #3e0205;
+  --ball-1: #e5b54a;
+  --ball-2: #f3e3c3;
+  --ball-3: #e0303a;
+  --ball-4: #c9793f;
+  --ball-5: #d8c08a;
+  --tray-ball: #f0c75e;
+  --ribbon-a: #fff3d4;
+  --ribbon-b: #d6a95a;
+  --ribbon-text: #9b0d12;
+  --reg-title-size: clamp(20px, 4.2vw, 28px);
+  --draw-title-size: clamp(22px, 3vw, 34px);
+  --winner-size: clamp(44px, 7vw, 76px);
+  --machine-size: min(40vh, 80vw, 480px);
   --font: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
+  --font-display: "Noto Serif TC", "PMingLiU", "Songti TC", serif;
+  --font-en: "Cinzel", "Times New Roman", serif;
   font-family: var(--font);
 }
 [data-t] { white-space: pre-line; }
@@ -42,68 +51,71 @@ body {
   min-height: 100vh;
   color: var(--text);
   background:
-    radial-gradient(1200px 600px at 50% -10%, var(--glow1) 0%, transparent 60%),
-    radial-gradient(800px 500px at 100% 100%, var(--glow2) 0%, transparent 60%),
-    var(--bg);
+    radial-gradient(900px 560px at 50% 32%, var(--glow1) 0%, transparent 70%),
+    radial-gradient(900px 600px at 100% 100%, var(--glow2) 0%, transparent 65%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
   background-attachment: fixed;
 }
+/* 參考主視覺的背景裝飾：同心金圈、紅綢、金色光帶 */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: url(/assets/bg-deco.svg) center / cover no-repeat;
+  opacity: .9;
+}
+body > *:not(dialog) { position: relative; z-index: 1; }
 a { color: var(--gold-hi); }
 button { font: inherit; cursor: pointer; }
 input, select { font: inherit; }
 
 .topbar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  max-width: 1100px; margin: 0 auto; padding: 22px 20px;
+  max-width: 1100px; margin: 0 auto; padding: 18px 20px;
 }
-.brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 20px; letter-spacing: .12em; }
-.brand-mark {
-  width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center;
-  border: 2px solid var(--gold); color: var(--gold); font-size: 20px;
-  box-shadow: 0 0 18px rgba(233, 185, 73, .25) inset;
-}
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 20px; letter-spacing: .12em; font-family: var(--font-display); }
+.brand-logo { height: 48px; width: auto; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
 .pill {
   border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px;
-  color: var(--text); background: rgba(255,255,255,.03); font-size: 14px; text-decoration: none;
+  color: var(--text); background: rgba(255,240,210,.06); font-size: 14px; text-decoration: none;
 }
 .card {
   background: var(--card);
-  border: 1px solid var(--line-soft);
+  border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, .35);
-  backdrop-filter: blur(6px);
+  box-shadow: 0 30px 60px rgba(30, 0, 3, .45), inset 0 1px 0 rgba(255, 235, 190, .08);
+  backdrop-filter: blur(8px);
 }
 .btn-gold {
   border: 0; border-radius: var(--btn-radius); padding: 16px 28px;
-  font-size: 20px; font-weight: 800; letter-spacing: .3em; color: var(--btn-text);
-  background: linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, color-mix(in srgb, var(--gold) 85%, black));
-  box-shadow: 0 6px 0 var(--gold-lo), 0 16px 30px rgba(233, 185, 73, .25);
+  font-size: 20px; font-weight: 900; letter-spacing: .3em; color: var(--btn-text); font-family: var(--font-display);
+  background: linear-gradient(180deg, var(--gold-hi), var(--gold) 55%, color-mix(in srgb, var(--gold) 80%, black));
+  box-shadow: 0 6px 0 var(--gold-lo), 0 16px 30px rgba(20, 0, 2, .35);
   transition: transform .08s, box-shadow .08s, filter .2s;
 }
 .btn-gold:hover { filter: brightness(1.05); }
-.btn-gold:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--gold-lo), 0 8px 18px rgba(233, 185, 73, .2); }
-.btn-gold:disabled { filter: grayscale(.6) brightness(.7); cursor: not-allowed; transform: none; }
+.btn-gold:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--gold-lo), 0 8px 18px rgba(20, 0, 2, .3); }
+.btn-gold:disabled { filter: grayscale(.5) brightness(.75); cursor: not-allowed; transform: none; }
 .btn-ghost {
-  border: 1px solid var(--line); background: transparent; color: var(--text);
+  border: 1px solid var(--line); background: rgba(255, 240, 210, .04); color: var(--text);
   border-radius: 12px; padding: 9px 16px; font-size: 14px;
 }
-.btn-ghost:hover { background: rgba(233,185,73,.08); }
-.btn-danger { border-color: rgba(255,122,122,.4); color: var(--danger); }
+.btn-ghost:hover { background: rgba(255, 220, 150, .12); }
+.btn-danger { border-color: rgba(255, 209, 102, .5); color: var(--danger); }
 
 .field { display: grid; gap: 8px; margin-bottom: 18px; }
 .field label, .label { font-weight: 700; font-size: 15px; }
-.req { color: var(--gold); margin-left: 4px; }
+.req { color: var(--gold-hi); margin-left: 4px; }
 .opt { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 6px; }
 .input {
-  width: 100%; padding: 14px 16px; border-radius: 14px; font-size: 16px;
+  width: 100%; padding: 14px 16px; border-radius: 12px; font-size: 16px;
   color: var(--text); background: var(--input-bg);
-  border: 1px solid rgba(255,255,255,.14); outline: none; transition: border-color .15s, box-shadow .15s;
+  border: 1px solid rgba(255, 220, 170, .22); outline: none; transition: border-color .15s, box-shadow .15s;
 }
-.input::placeholder { color: #6f7d97; }
-.input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(233,185,73,.18); }
-.input.bad { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255,122,122,.15); }
+.input::placeholder { color: rgba(251, 238, 214, .42); }
+.input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(216, 172, 90, .25); }
+.input.bad { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255, 209, 102, .22); }
 .hint { color: var(--muted); font-size: 13px; }
 
-.seg { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--input-bg); border: 1px solid rgba(255,255,255,.1); }
+.seg { display: inline-flex; padding: 4px; border-radius: 14px; background: var(--input-bg); border: 1px solid rgba(255, 220, 170, .18); }
 .seg button {
   border: 0; background: transparent; color: var(--muted); padding: 9px 16px; border-radius: 10px; font-size: 15px;
 }
@@ -113,13 +125,36 @@ input, select { font: inherit; }
 .check input { width: 20px; height: 20px; accent-color: var(--gold); }
 
 .msg { border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 16px; }
-.msg.err { background: rgba(255,122,122,.1); border: 1px solid rgba(255,122,122,.35); color: #ffc2c2; }
-.msg.ok { background: rgba(127,220,170,.1); border: 1px solid rgba(127,220,170,.35); color: #c5f3d9; }
+.msg.err { background: #fff2dc; border: 1px solid var(--gold); color: #8a0c12; font-weight: 600; }
+.msg.ok { background: rgba(184, 240, 200, .12); border: 1px solid rgba(184, 240, 200, .4); color: var(--ok); }
 
-/* 樂透彩球 */
+/* ---------- 緞帶標題「校友返校日」與英文副標 ---------- */
+.ribbon-wrap { display: flex; justify-content: center; filter: drop-shadow(0 8px 14px rgba(40, 0, 4, .45)); }
+.ribbon {
+  position: relative; display: inline-flex; align-items: center; gap: .55em;
+  padding: .22em 1.5em; font-family: var(--font-display); font-weight: 900; color: var(--ribbon-text);
+  font-size: clamp(26px, 5.4vw, 46px); letter-spacing: .16em; line-height: 1.35;
+  background: linear-gradient(180deg, var(--ribbon-a) 0%, color-mix(in srgb, var(--ribbon-a) 45%, var(--ribbon-b)) 55%, var(--ribbon-b) 100%);
+  clip-path: polygon(0 0, 100% 0, calc(100% - .55em) 50%, 100% 100%, 0 100%, .55em 50%);
+}
+.ribbon::before, .ribbon::after {
+  content: ""; width: .62em; height: 1em; flex: none;
+  background: url(/assets/laurel.svg) center / contain no-repeat;
+}
+.ribbon::after { transform: scaleX(-1); }
+.ribbon span { margin-right: -.16em; } /* 抵銷最後一字的字距，讓文字置中 */
+.en-sub {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin-top: 12px; font-family: var(--font-en); font-size: clamp(12px, 1.6vw, 16px);
+  letter-spacing: .28em; color: var(--gold-hi); text-transform: uppercase;
+}
+.en-sub::before, .en-sub::after { content: ""; width: 44px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
+.en-sub::after { transform: scaleX(-1); }
+
+/* ---------- 樂透彩球 ---------- */
 .ball {
   position: absolute; border-radius: 50%;
-  box-shadow: inset -6px -8px 14px rgba(0,0,0,.28), 0 6px 12px rgba(0,0,0,.35);
+  box-shadow: inset -6px -8px 14px rgba(0,0,0,.3), 0 6px 12px rgba(20,0,2,.45);
 }
 .ball::after {
   content: ""; position: absolute; left: 18%; top: 12%; width: 38%; height: 30%; border-radius: 50%;
@@ -132,7 +167,9 @@ input, select { font: inherit; }
 .c-purple{ background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-5) 22%, white), var(--ball-5) 45%, color-mix(in srgb, var(--ball-5) 45%, black) 100%); }
 
 @media (max-width: 640px) {
-  .topbar { padding: 16px; }
+  .en-sub { letter-spacing: .14em; gap: 8px; font-size: 11px; white-space: nowrap; }
+  .en-sub::before, .en-sub::after { width: 22px; }
+  .topbar { padding: 14px 16px; }
   .brand { font-size: 17px; }
-  .brand-mark { width: 38px; height: 38px; }
+  .brand-logo { height: 40px; }
 }

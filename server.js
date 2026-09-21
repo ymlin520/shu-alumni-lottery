@@ -136,7 +136,7 @@ function designHead() {
 }
 
 // ---------- 靜態檔 ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
 function serveStatic(req, res, file) {
   const p = path.join(ROOT, 'public', file);
   if (!p.startsWith(path.join(ROOT, 'public'))) return send(res, 403, { error: 'forbidden' });

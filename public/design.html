@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>設計後台</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎨</text></svg>">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
 <link rel="stylesheet" href="/assets/theme.css">
 <style>
   [hidden] { display: none !important; }
   body { overflow: hidden; }
-  .topbar { max-width: none; padding: 14px 20px; border-bottom: 1px solid var(--line-soft); background: rgba(5,14,32,.5); }
+  .topbar { max-width: none; padding: 14px 20px; border-bottom: 1px solid var(--line-soft); background: rgba(40,2,6,.5); }
   .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .actions .btn-gold { font-size: 16px; letter-spacing: .15em; padding: 11px 24px; }
   .status { font-size: 13px; color: var(--muted); }
@@ -19,7 +19,7 @@
   .login h1 { margin: 0 0 20px; font-size: 22px; letter-spacing: .1em; }
 
   .layout { display: grid; grid-template-columns: 460px 1fr; height: calc(100vh - 75px); }
-  .editor { border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; min-height: 0; background: rgba(5,14,32,.35); }
+  .editor { border-right: 1px solid var(--line-soft); display: flex; flex-direction: column; min-height: 0; background: rgba(40,2,6,.35); }
   .etabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 14px 16px 10px; border-bottom: 1px solid var(--line-soft); }
   .etabs button { border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 999px; padding: 6px 13px; font-size: 13.5px; }
   .etabs button.on { color: var(--btn-text); background: linear-gradient(180deg, var(--gold-hi), var(--gold)); border-color: transparent; font-weight: 700; }
@@ -30,7 +30,7 @@
   .row { display: grid; grid-template-columns: 150px 1fr 28px; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line-soft); }
   .row.wide { grid-template-columns: 1fr 28px; }
   .row.wide > label { grid-column: 1 / -1; }
-  .row > label { font-size: 13.5px; color: #d5dcea; line-height: 1.4; }
+  .row > label { font-size: 13.5px; color: var(--text); line-height: 1.4; }
   .row > label small { display: block; color: var(--muted); font-size: 11.5px; font-family: ui-monospace, Consolas, monospace; }
   .row.changed > label { color: var(--gold-hi); }
   .ctl { display: flex; gap: 8px; align-items: center; min-width: 0; }
@@ -65,7 +65,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">🎨</div><span>設計後台</span></div>
+  <div class="brand"><img class="brand-logo" src="/assets/logo-70-sm.webp" alt="世新大學 70 週年"><span>設計後台</span></div>
   <div class="actions" id="actions" hidden>
     <span class="status" id="status">已是最新</span>
     <button class="btn-ghost" id="revert" title="放棄還沒儲存的修改">還原成已儲存</button>

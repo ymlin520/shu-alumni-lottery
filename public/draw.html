@@ -4,27 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>幸運抽獎</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎱</text></svg>">
+<link rel="icon" type="image/png" href="/assets/favicon.png">
 <link rel="stylesheet" href="/assets/theme.css">
 <style>
   [hidden] { display: none !important; }
   body { overflow-x: hidden; }
+  .topbar { padding-top: 12px; padding-bottom: 6px; }
   .login { max-width: 400px; margin: 12vh auto 0; padding: 32px 28px; }
   .login h1 { margin: 0 0 20px; font-size: 22px; letter-spacing: .1em; }
   .top-actions { display: flex; gap: 10px; align-items: center; }
 
   /* ===== 抽獎舞台（整頁） ===== */
-  .stage { min-height: calc(100vh - 90px); padding: 4px 16px 28px; text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-  .stage:fullscreen { min-height: 100vh; justify-content: center; background: radial-gradient(1200px 600px at 50% -10%, var(--glow1) 0%, transparent 60%), var(--bg); }
-  .stage h2 { margin: 0 0 6px; font-size: var(--draw-title-size); letter-spacing: .14em; }
-  .stage .left { margin: 0 0 20px; color: var(--text); font-size: 18px; }
+  .stage { min-height: calc(100vh - 90px); padding: 0 16px 12px; text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+  .stage:fullscreen { min-height: 100vh; justify-content: center; background: url(/assets/bg-deco.svg) center / cover no-repeat, radial-gradient(900px 560px at 50% 40%, var(--glow1) 0%, transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2)); }
+  .stage h2 { margin: 8px 0 2px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
+  .draw-ribbon .ribbon { font-size: clamp(20px, 2.6vw, 32px); }
+  .stage .en-sub { margin-top: 8px; font-size: clamp(11px, 1.1vw, 14px); }
+  .hub-logo { width: 74%; height: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
+  .hub-text:empty { display: none; }
+  .hub-text { position: absolute; bottom: 12%; left: 0; right: 0; font-size: calc(var(--size) * .022); }
+  .stage .left { margin: 0 0 14px; color: var(--text); font-size: 18px; }
   .stage .left b { color: var(--gold-hi); font-size: 22px; }
-  .prize-chip { display: inline-block; margin: 0 0 10px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(233,185,73,.12); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
+  .prize-chip { display: inline-block; margin: 0 0 10px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(216,172,90,.12); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
   .machine { --size: var(--machine-size); width: var(--size); margin: 0 auto; position: relative; }
   .ring {
     width: var(--size); height: var(--size); border-radius: 50%; position: relative; padding: 4.2%;
     background: conic-gradient(from 200deg, var(--ring-a), var(--ring-b) 18%, var(--ring-c) 35%, color-mix(in srgb, var(--ring-a) 50%, var(--ring-b)) 52%, color-mix(in srgb, var(--ring-b) 70%, var(--ring-c)) 70%, var(--ring-a) 88%, var(--ring-b));
-    box-shadow: 0 0 0 3px rgba(0,0,0,.25), 0 30px 60px rgba(0,0,0,.45), 0 0 80px rgba(233,185,73,.18);
+    box-shadow: 0 0 0 3px rgba(0,0,0,.25), 0 30px 60px rgba(0,0,0,.45), 0 0 80px rgba(216,172,90,.18);
   }
   .drum {
     width: 100%; height: 100%; border-radius: 50%; position: relative; overflow: hidden;
@@ -61,14 +67,14 @@
     background: radial-gradient(circle at 35% 28%, color-mix(in srgb, var(--tray-ball) 25%, white), var(--tray-ball) 45%, color-mix(in srgb, var(--tray-ball) 65%, black) 100%);
     box-shadow: inset -8px -10px 18px rgba(0,0,0,.25), 0 12px 24px rgba(0,0,0,.4), 0 0 0 4px rgba(255,255,255,.15);
   }
-  .tray-ball span { color: var(--btn-text); font-weight: 900; padding: 0 10%; line-height: 1.15; word-break: break-all; position: relative; z-index: 1; }
+  .tray-ball span { color: var(--btn-text); font-weight: 900; font-family: var(--font-display); padding: 0 10%; line-height: 1.15; word-break: break-all; position: relative; z-index: 1; }
   .tray-ball.show { transform: translateX(-50%) scale(1); animation: trayDrop .8s cubic-bezier(.3,1.5,.5,1); }
   @keyframes trayDrop { 0% { transform: translateX(-50%) translateY(-120%) scale(.5); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
-  .draw-btn { margin: 30px auto 0; width: min(320px, 80%); display: block; font-size: 22px; }
-  .result { margin-top: 18px; min-height: 120px; }
+  .draw-btn { margin: 20px auto 0; width: min(320px, 80%); display: block; font-size: 22px; }
+  .result { margin-top: 8px; min-height: 120px; }
   .result .lbl { color: var(--text); font-size: 20px; letter-spacing: .1em; }
-  .result .prize { display: inline-block; margin-left: 8px; padding: 2px 12px; border-radius: 999px; background: rgba(233,185,73,.15); color: var(--gold-hi); font-size: 16px; }
-  .result .nm { font-size: var(--winner-size); font-weight: 900; letter-spacing: .12em; color: var(--gold-hi); text-shadow: 0 0 24px rgba(233,185,73,.4); margin-top: 4px; }
+  .result .prize { display: inline-block; margin-left: 8px; padding: 2px 12px; border-radius: 999px; background: rgba(216,172,90,.15); color: var(--gold-hi); font-size: 16px; }
+  .result .nm { font-size: var(--winner-size); font-weight: 900; letter-spacing: .14em; font-family: var(--font-display); color: var(--gold-hi); text-shadow: 0 0 24px rgba(216,172,90,.4); margin-top: 4px; }
   .result .meta { color: var(--muted); font-size: 16px; }
   .result.pop .nm { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
   @keyframes pop { from { transform: scale(.6); } }
@@ -79,7 +85,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><div class="brand-mark">✦</div><span data-t="draw.brand">幸運抽獎</span></div>
+  <div class="brand"><img class="brand-logo" src="/assets/logo-70-sm.webp" alt="世新大學 70 週年"><span data-t="draw.brand">世新大學 70 週年</span></div>
   <div class="top-actions" id="actions" hidden>
     <button class="btn-ghost" id="fsBtn" title="投影用全螢幕">⛶ 全螢幕</button>
     <a class="pill" href="/admin" target="_blank">後台管理</a>
@@ -97,12 +103,13 @@
 </section>
 
 <main class="stage" id="stage" hidden>
+  <div class="ribbon-wrap draw-ribbon"><div class="ribbon"><span data-t="draw.ribbon">校友返校日</span></div></div>
+  <div class="en-sub" data-t="draw.en">Alumni Homecoming Day</div>
   <h2 data-t="draw.heading">今天的幸運校友是誰？</h2>
   <p class="left"><span data-t="draw.leftPre">還有</span> <b id="remain">0</b> <span data-t="draw.leftPost">位校友待抽</span></p>
   <div class="machine">
     <div class="ring">
-      <div class="drum" id="drum"><div class="hub" data-t="draw.hub">LUCKY
-DRAW</div></div>
+      <div class="drum" id="drum"><div class="hub"><img class="hub-logo" src="/assets/logo-70-sm.webp" alt=""><span class="hub-text" data-t="draw.hub"></span></div></div>
     </div>
     <div class="tray"><div class="tray-ball" id="trayBall"><span id="trayName"></span></div></div>
   </div>
@@ -226,7 +233,7 @@ document.addEventListener('fullscreenchange', () => setTimeout(() => { const { r
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 function confetti() {
-  const cols = ['#f8dc8a', '#e9b949', '#52b8d6', '#e0587c', '#4fbf7d', '#8f7ae6', '#fff'];
+  const cols = ['#f7e3b0', '#d8ac5a', '#fff4d2', '#e0303a', '#ff6b6b', '#c9793f', '#ffffff'];
   for (let i = 0; i < 90; i++) {
     const c = document.createElement('div');
     c.className = 'confetti';
