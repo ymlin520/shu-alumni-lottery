@@ -36,6 +36,9 @@
   --draw-title-size: clamp(22px, 3vw, 34px);
   --winner-size: clamp(44px, 7vw, 76px);
   --machine-size: min(40vh, 80vw, 480px);
+  --logo-height: 48px;
+  --hub-logo-size: 74%;
+  --bg-deco-opacity: 0.9;
   --font: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
   --font-display: "Noto Serif TC", "PMingLiU", "Songti TC", serif;
   font-family: var(--font);
@@ -55,8 +58,8 @@ body {
 /* 參考主視覺的背景裝飾：同心金圈、紅綢、金色光帶 */
 body::before {
   content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background: url(/assets/bg-deco.svg) center / cover no-repeat;
-  opacity: .9;
+  background: var(--bg-deco, url(/brand/bg)) center / cover no-repeat;
+  opacity: var(--bg-deco-opacity, .9);
 }
 body > *:not(dialog) { position: relative; z-index: 1; }
 a { color: var(--gold-hi); }
@@ -68,7 +71,8 @@ input, select { font: inherit; }
   max-width: 1100px; margin: 0 auto; padding: 18px 20px;
 }
 .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 20px; letter-spacing: .12em; font-family: var(--font-display); }
-.brand-logo { height: 48px; width: auto; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
+.brand-logo[hidden] { display: none; }
+.brand-logo { height: var(--logo-height, 48px); width: auto; filter: drop-shadow(0 3px 6px rgba(0,0,0,.35)); }
 .pill {
   border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px;
   color: var(--text); background: rgba(255,240,210,.06); font-size: 14px; text-decoration: none;
@@ -142,5 +146,5 @@ input, select { font: inherit; }
 @media (max-width: 640px) {
   .topbar { padding: 14px 16px; }
   .brand { font-size: 17px; }
-  .brand-logo { height: 40px; }
+  .brand-logo { height: calc(var(--logo-height, 48px) * .84); }
 }

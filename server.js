@@ -14,6 +14,8 @@ const ROOT = __dirname;
 const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const PW_FILE = path.join(ROOT, 'admin-password.txt');
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads'); // 設計後台上傳的圖片（不進版控）
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // ---------- 管理密碼 ----------
 let ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
@@ -26,10 +28,10 @@ if (!ADMIN_PASSWORD) {
 }
 
 // ---------- 資料 ----------
-const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '' }, design: { vars: {}, texts: {}, customCss: '' }, entries: [], winners: [] };
+const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '' }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
 let db = EMPTY;
 if (fs.existsSync(DB_FILE)) {
-  try { const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); db = { ...EMPTY, ...saved, settings: { ...EMPTY.settings, ...saved.settings }, design: { ...EMPTY.design, ...saved.design } }; } catch (e) { console.error('db.json 讀取失敗，另存備份', e); fs.copyFileSync(DB_FILE, DB_FILE + '.broken-' + Date.now()); }
+  try { const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); db = { ...EMPTY, ...saved, settings: { ...EMPTY.settings, ...saved.settings }, design: { ...EMPTY.design, assets: {}, ...saved.design } }; } catch (e) { console.error('db.json 讀取失敗，另存備份', e); fs.copyFileSync(DB_FILE, DB_FILE + '.broken-' + Date.now()); }
 }
 function save() {
   const tmp = DB_FILE + '.tmp';
@@ -124,7 +126,7 @@ function currentDesign() {
   const vars = {}, texts = {};
   for (const v of DESIGN_SCHEMA.vars) vars[v.key] = db.design.vars[v.key] ?? v.default;
   for (const t of DESIGN_SCHEMA.texts) texts[t.key] = db.design.texts[t.key] ?? t.default;
-  return { vars, texts, customCss: db.design.customCss || '' };
+  return { vars, texts, customCss: db.design.customCss || '', assets: { ...(db.design.assets || {}) } };
 }
 const safeCssValue = (v) => String(v ?? '').replace(/[;{}<>]/g, '').trim().slice(0, 300);
 function designHead() {
@@ -135,8 +137,58 @@ function designHead() {
     + `<script>window.__DESIGN__=JSON.parse(decodeURIComponent("${encodeURIComponent(JSON.stringify(d))}"));</script>`;
 }
 
+// ---------- 設計後台上傳的圖片 ----------
+const ASSET_SLOTS = Object.fromEntries(DESIGN_SCHEMA.assets.map((a) => [a.key, a]));
+const BLANK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>';
+function readRaw(req, max) {
+  return new Promise((resolve, reject) => {
+    let size = 0; const chunks = [];
+    req.on('data', (c) => { size += c.length; if (size > max) { reject(new Error('too large')); req.destroy(); } else chunks.push(c); });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
+    req.on('error', reject);
+  });
+}
+// 用檔頭判斷圖片格式，不相信副檔名或 Content-Type
+function sniffImage(b) {
+  if (b.length < 12) return null;
+  if (b[0] === 0x89 && b.toString('latin1', 1, 4) === 'PNG') return 'png';
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
+  if (b.toString('latin1', 0, 4) === 'GIF8') return 'gif';
+  if (b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') return 'webp';
+  if (b[0] === 0 && b[1] === 0 && b[2] === 1 && b[3] === 0) return 'ico';
+  const head = b.toString('utf8', 0, Math.min(b.length, 2048)).replace(/^\uFEFF/, '').trimStart();
+  if ((head.startsWith('<?xml') || head.startsWith('<svg') || head.startsWith('<!--')) && head.includes('<svg')) return 'svg';
+  return null;
+}
+function serveFile(res, file, extraHeaders = {}) {
+  fs.readFile(file, (err, buf) => {
+    if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('找不到圖片'); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', ...extraHeaders });
+    res.end(buf);
+  });
+}
+// 上傳的 SVG 可能夾帶程式碼，一律用沙盒 CSP 送出，直接開網址也不會執行
+const UPLOAD_HEADERS = { 'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" };
+function serveUpload(res, file) { serveFile(res, path.join(UPLOAD_DIR, file), UPLOAD_HEADERS); }
+function serveBrand(req, res, slot, forceDefault) {
+  const a = ASSET_SLOTS[slot];
+  if (!a) { res.writeHead(404); return res.end(); }
+  const v = forceDefault ? null : (db.design.assets || {})[slot];
+  if (v === 'none') { res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-cache' }); return res.end(BLANK_SVG); }
+  if (v && fs.existsSync(path.join(UPLOAD_DIR, v))) return serveUpload(res, v);
+  return serveFile(res, path.join(ROOT, 'public', a.default));
+}
+// 刪掉沒被使用、且超過 1 小時的上傳檔（留 1 小時給還沒按儲存的編輯）
+function cleanupUploads() {
+  const used = new Set(Object.values(db.design.assets || {}));
+  for (const f of fs.readdirSync(UPLOAD_DIR)) {
+    const full = path.join(UPLOAD_DIR, f);
+    try { if (!used.has(f) && Date.now() - fs.statSync(full).mtimeMs > 3600_000) fs.unlinkSync(full); } catch {}
+  }
+}
+
 // ---------- 靜態檔 ----------
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.ico': 'image/x-icon' };
 function serveStatic(req, res, file) {
   const p = path.join(ROOT, 'public', file);
   if (!p.startsWith(path.join(ROOT, 'public'))) return send(res, 403, { error: 'forbidden' });
@@ -159,6 +211,9 @@ async function handle(req, res) {
   if (m === 'GET' && (p === '/draw' || p === '/draw/')) return serveStatic(req, res, 'draw.html');
   if (m === 'GET' && (p === '/design' || p === '/design/')) return serveStatic(req, res, 'design.html');
   if (m === 'GET' && /^\/assets\/[\w.-]+$/.test(p)) return serveStatic(req, res, p.slice(1));
+  let bm;
+  if (m === 'GET' && (bm = p.match(/^\/brand\/([a-z]+)$/))) return serveBrand(req, res, bm[1], url.searchParams.has('default'));
+  if (m === 'GET' && (bm = p.match(/^\/uploads\/([a-z]+-\d+\.(?:png|jpg|jpeg|gif|webp|svg|ico))$/))) return serveUpload(res, bm[1]);
 
   // 前台
   if (m === 'GET' && p === '/api/status') {
@@ -200,6 +255,16 @@ async function handle(req, res) {
     if (m === 'GET' && p === '/api/admin/draw-info') {
       return send(res, 200, { settings: db.settings, remaining: remaining().length });
     }
+    if (m === 'POST' && p === '/api/admin/upload') {
+      const slot = url.searchParams.get('slot');
+      if (!ASSET_SLOTS[slot]) return send(res, 400, { error: '不支援的圖片位置' });
+      let buf; try { buf = await readRaw(req, 5 * 1024 * 1024); } catch { return send(res, 413, { error: '圖片太大，請小於 5 MB。' }); }
+      const ext = sniffImage(buf);
+      if (!ext) return send(res, 400, { error: '只接受 PNG、JPG、GIF、WebP、SVG、ICO 圖片。' });
+      const file = `${slot}-${Date.now()}.${ext}`;
+      fs.writeFileSync(path.join(UPLOAD_DIR, file), buf);
+      return send(res, 200, { ok: true, file, url: '/uploads/' + file, size: buf.length });
+    }
     if (m === 'GET' && p === '/api/admin/design') {
       return send(res, 200, { schema: DESIGN_SCHEMA, design: currentDesign() });
     }
@@ -214,8 +279,16 @@ async function handle(req, res) {
         const val = String(b.texts?.[t.key] ?? '').slice(0, 500);
         if (val !== t.default && b.texts && t.key in b.texts) texts[t.key] = val;
       }
-      db.design = { vars, texts, customCss: String(b.customCss || '').slice(0, 50_000) };
-      save(); return send(res, 200, { ok: true, design: currentDesign() });
+      const assets = {};
+      for (const a of DESIGN_SCHEMA.assets) {
+        const v = b.assets?.[a.key];
+        if (v === 'none' && a.allowNone) assets[a.key] = 'none';
+        else if (typeof v === 'string' && new RegExp('^' + a.key + '-\\d+\\.(png|jpg|jpeg|gif|webp|svg|ico)$').test(v) && fs.existsSync(path.join(UPLOAD_DIR, v))) assets[a.key] = v;
+      }
+      db.design = { vars, texts, customCss: String(b.customCss || '').slice(0, 50_000), assets };
+      save();
+      cleanupUploads();
+      return send(res, 200, { ok: true, design: currentDesign() });
     }
     if (m === 'POST' && p === '/api/admin/settings') {
       const b = await readBody(req).catch(() => ({}));

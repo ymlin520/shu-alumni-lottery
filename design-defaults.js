@@ -26,6 +26,10 @@ const vars = [
   { key: 'ball-4', group: '抽獎機', label: '彩球 4（古銅）', type: 'color', default: '#c9793f' },
   { key: 'ball-5', group: '抽獎機', label: '彩球 5（香檳）', type: 'color', default: '#d8c08a' },
   { key: 'tray-ball', group: '抽獎機', label: '中獎球', type: 'color', default: '#f0c75e' },
+  // 圖片與 Logo
+  { key: 'logo-height', group: '圖片與 Logo', label: '左上角 Logo 高度', type: 'text', default: '48px' },
+  { key: 'hub-logo-size', group: '圖片與 Logo', label: '抽獎機中心 Logo 大小', type: 'text', default: '74%' },
+  { key: 'bg-deco-opacity', group: '圖片與 Logo', label: '背景裝飾圖透明度（0～1）', type: 'text', default: '0.9' },
   // 字型與尺寸
   { key: 'font', group: '字型與尺寸', label: '內文字型', type: 'text', default: '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif' },
   { key: 'font-display', group: '字型與尺寸', label: '標題字型（標題、中獎姓名）', type: 'text', default: '"Noto Serif TC", "PMingLiU", "Songti TC", serif' },
@@ -82,4 +86,12 @@ const texts = [
   { key: 'draw.former', group: '抽獎頁', label: '原名前綴', default: '原名' },
 ];
 
-module.exports = { vars, texts };
+// 可在設計後台上傳替換的圖片（沒上傳就用 default）
+const assets = [
+  { key: 'logo', label: '左上角 Logo', hint: '登記頁、抽獎頁、後台左上角。建議透明背景 PNG／WebP，高度 200px 以上。', default: 'assets/logo-70-sm.webp', allowNone: true },
+  { key: 'hub', label: '抽獎機中心 Logo', hint: '抽獎機中央的圓形區域，攪拌時會跟著轉。建議正方形、透明背景。選「不顯示」可改用「抽獎頁文字」裡的轉盤中心文字。', default: 'assets/logo-70-sm.webp', allowNone: true },
+  { key: 'favicon', label: '瀏覽器分頁圖示', hint: '分頁標籤上的小圖示。建議正方形 PNG，128×128 以上。', default: 'assets/favicon.png', allowNone: false },
+  { key: 'bg', label: '背景裝飾圖', hint: '整頁背景上的裝飾（目前是同心金圈與紅綢）。會鋪滿畫面，建議 1600×900 以上，或選「不顯示」只留底色。', default: 'assets/bg-deco.svg', allowNone: true },
+];
+
+module.exports = { vars, texts, assets };

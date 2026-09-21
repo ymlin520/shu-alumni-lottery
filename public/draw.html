@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>幸運抽獎</title>
-<link rel="icon" type="image/png" href="/assets/favicon.png">
+<link rel="icon" href="/brand/favicon">
 <link rel="stylesheet" href="/assets/theme.css">
 <style>
   [hidden] { display: none !important; }
@@ -16,9 +16,9 @@
 
   /* ===== 抽獎舞台（整頁） ===== */
   .stage { min-height: calc(100vh - 90px); padding: 0 16px 12px; text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-  .stage:fullscreen { min-height: 100vh; justify-content: center; background: url(/assets/bg-deco.svg) center / cover no-repeat, radial-gradient(900px 560px at 50% 40%, var(--glow1) 0%, transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2)); }
+  .stage:fullscreen { min-height: 100vh; justify-content: center; background: var(--bg-deco, url(/brand/bg)) center / cover no-repeat, radial-gradient(900px 560px at 50% 40%, var(--glow1) 0%, transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2)); }
   .stage h2 { margin: 18px 0 4px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
-  .hub-logo { width: 74%; height: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
+  .hub-logo { width: var(--hub-logo-size, 74%); height: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
   .hub-text:empty { display: none; }
   .hub-text { position: absolute; bottom: 12%; left: 0; right: 0; font-size: calc(var(--size) * .022); }
   .stage .left { margin: 0 0 14px; color: var(--text); font-size: 18px; }
@@ -83,7 +83,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><img class="brand-logo" src="/assets/logo-70-sm.webp" alt="世新大學 70 週年"><span data-t="draw.brand">世新大學 70 週年</span></div>
+  <div class="brand"><img class="brand-logo" src="/brand/logo" data-asset="logo" alt="Logo"><span data-t="draw.brand">世新大學 70 週年</span></div>
   <div class="top-actions" id="actions" hidden>
     <button class="btn-ghost" id="fsBtn" title="投影用全螢幕">⛶ 全螢幕</button>
     <a class="pill" href="/admin" target="_blank">後台管理</a>
@@ -105,7 +105,7 @@
   <p class="left"><span data-t="draw.leftPre">還有</span> <b id="remain">0</b> <span data-t="draw.leftPost">位校友待抽</span></p>
   <div class="machine">
     <div class="ring">
-      <div class="drum" id="drum"><div class="hub"><img class="hub-logo" src="/assets/logo-70-sm.webp" alt=""><span class="hub-text" data-t="draw.hub"></span></div></div>
+      <div class="drum" id="drum"><div class="hub"><img class="hub-logo" src="/brand/hub" data-asset="hub" alt=""><span class="hub-text" data-t="draw.hub"></span></div></div>
     </div>
     <div class="tray"><div class="tray-ball" id="trayBall"><span id="trayName"></span></div></div>
   </div>

@@ -26,9 +26,25 @@
     if (!el) { el = document.createElement('style'); el.id = id; document.head.appendChild(el); }
     return el;
   }
+  // 預覽時的圖片：已上傳但未儲存的用 /uploads/，恢復預設的用 /brand/x?default
+  function assetUrl(slot, v) {
+    if (v === 'none') return '';
+    if (v) return '/uploads/' + encodeURIComponent(v);
+    return '/brand/' + slot + '?default';
+  }
+  function applyAssets() {
+    const a = D.assets || {};
+    document.querySelectorAll('img[data-asset]').forEach((img) => {
+      const v = a[img.dataset.asset];
+      img.hidden = v === 'none';
+      if (v !== 'none') img.src = assetUrl(img.dataset.asset, v);
+    });
+  }
   function applyCss() {
     const clean = (v) => String(v ?? '').replace(/[;{}<>]/g, '').trim();
-    styleEl('design-vars').textContent = ':root{' + Object.entries(D.vars || {}).map(([k, v]) => '--' + k + ':' + clean(v) + ';').join('') + '}';
+    const a = D.assets || {};
+    const bg = a.bg === 'none' ? 'none' : 'url(' + assetUrl('bg', a.bg) + ')';
+    styleEl('design-vars').textContent = ':root{' + Object.entries(D.vars || {}).map(([k, v]) => '--' + k + ':' + clean(v) + ';').join('') + '--bg-deco:' + bg + ';}';
     const custom = styleEl('design-custom');
     custom.textContent = String(D.customCss || '').replace(/</g, '');
     document.head.appendChild(custom); // 自訂 CSS 永遠放最後，優先權最高
@@ -41,7 +57,7 @@
       if (e.origin !== location.origin || !e.data) return;
       if (e.data.type === 'design') {
         D = e.data.design;
-        applyCss(); applyTexts();
+        applyCss(); applyTexts(); applyAssets();
         document.dispatchEvent(new Event('designchange'));
       }
       if (e.data.type === 'view') document.dispatchEvent(new CustomEvent('previewview', { detail: e.data.view }));
