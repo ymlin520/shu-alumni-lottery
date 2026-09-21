@@ -1,6 +1,6 @@
-/* 世新 70 週年校友返校日：紅金配色
+/* 世新 70 週年：紅金配色
    這裡是預設值；/design 設計後台可以覆寫所有 --變數 */
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Noto+Serif+TC:wght@600;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap');
 
 :root {
   --bg: #6d0a10;
@@ -32,16 +32,12 @@
   --ball-4: #c9793f;
   --ball-5: #d8c08a;
   --tray-ball: #f0c75e;
-  --ribbon-a: #fff3d4;
-  --ribbon-b: #d6a95a;
-  --ribbon-text: #9b0d12;
-  --reg-title-size: clamp(20px, 4.2vw, 28px);
+  --reg-title-size: clamp(28px, 5vw, 40px);
   --draw-title-size: clamp(22px, 3vw, 34px);
   --winner-size: clamp(44px, 7vw, 76px);
   --machine-size: min(40vh, 80vw, 480px);
   --font: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
   --font-display: "Noto Serif TC", "PMingLiU", "Songti TC", serif;
-  --font-en: "Cinzel", "Times New Roman", serif;
   font-family: var(--font);
 }
 [data-t] { white-space: pre-line; }
@@ -128,29 +124,6 @@ input, select { font: inherit; }
 .msg.err { background: #fff2dc; border: 1px solid var(--gold); color: #8a0c12; font-weight: 600; }
 .msg.ok { background: rgba(184, 240, 200, .12); border: 1px solid rgba(184, 240, 200, .4); color: var(--ok); }
 
-/* ---------- 緞帶標題「校友返校日」與英文副標 ---------- */
-.ribbon-wrap { display: flex; justify-content: center; filter: drop-shadow(0 8px 14px rgba(40, 0, 4, .45)); }
-.ribbon {
-  position: relative; display: inline-flex; align-items: center; gap: .55em;
-  padding: .22em 1.5em; font-family: var(--font-display); font-weight: 900; color: var(--ribbon-text);
-  font-size: clamp(26px, 5.4vw, 46px); letter-spacing: .16em; line-height: 1.35;
-  background: linear-gradient(180deg, var(--ribbon-a) 0%, color-mix(in srgb, var(--ribbon-a) 45%, var(--ribbon-b)) 55%, var(--ribbon-b) 100%);
-  clip-path: polygon(0 0, 100% 0, calc(100% - .55em) 50%, 100% 100%, 0 100%, .55em 50%);
-}
-.ribbon::before, .ribbon::after {
-  content: ""; width: .62em; height: 1em; flex: none;
-  background: url(/assets/laurel.svg) center / contain no-repeat;
-}
-.ribbon::after { transform: scaleX(-1); }
-.ribbon span { margin-right: -.16em; } /* 抵銷最後一字的字距，讓文字置中 */
-.en-sub {
-  display: flex; align-items: center; justify-content: center; gap: 14px;
-  margin-top: 12px; font-family: var(--font-en); font-size: clamp(12px, 1.6vw, 16px);
-  letter-spacing: .28em; color: var(--gold-hi); text-transform: uppercase;
-}
-.en-sub::before, .en-sub::after { content: ""; width: 44px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold)); }
-.en-sub::after { transform: scaleX(-1); }
-
 /* ---------- 樂透彩球 ---------- */
 .ball {
   position: absolute; border-radius: 50%;
@@ -167,8 +140,6 @@ input, select { font: inherit; }
 .c-purple{ background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ball-5) 22%, white), var(--ball-5) 45%, color-mix(in srgb, var(--ball-5) 45%, black) 100%); }
 
 @media (max-width: 640px) {
-  .en-sub { letter-spacing: .14em; gap: 8px; font-size: 11px; white-space: nowrap; }
-  .en-sub::before, .en-sub::after { width: 22px; }
   .topbar { padding: 14px 16px; }
   .brand { font-size: 17px; }
   .brand-logo { height: 40px; }

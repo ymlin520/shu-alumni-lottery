@@ -14,9 +14,6 @@ const vars = [
   { key: 'muted', group: '配色', label: '次要文字', type: 'color', default: '#e2bba3' },
   { key: 'danger', group: '配色', label: '警示顏色', type: 'color', default: '#ffd166' },
   { key: 'input-bg', group: '配色', label: '輸入框底色', type: 'color', default: 'rgba(40, 2, 6, 0.45)' },
-  { key: 'ribbon-a', group: '配色', label: '緞帶亮部', type: 'color', default: '#fff3d4' },
-  { key: 'ribbon-b', group: '配色', label: '緞帶暗部', type: 'color', default: '#d6a95a' },
-  { key: 'ribbon-text', group: '配色', label: '緞帶文字', type: 'color', default: '#9b0d12' },
   // 抽獎機
   { key: 'ring-a', group: '抽獎機', label: '外環亮部', type: 'color', default: '#fff4d2' },
   { key: 'ring-b', group: '抽獎機', label: '外環主色', type: 'color', default: '#d8ac5a' },
@@ -31,11 +28,10 @@ const vars = [
   { key: 'tray-ball', group: '抽獎機', label: '中獎球', type: 'color', default: '#f0c75e' },
   // 字型與尺寸
   { key: 'font', group: '字型與尺寸', label: '內文字型', type: 'text', default: '"Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif' },
-  { key: 'font-display', group: '字型與尺寸', label: '標題字型（緞帶、姓名）', type: 'text', default: '"Noto Serif TC", "PMingLiU", "Songti TC", serif' },
-  { key: 'font-en', group: '字型與尺寸', label: '英文副標字型', type: 'text', default: '"Cinzel", "Times New Roman", serif' },
+  { key: 'font-display', group: '字型與尺寸', label: '標題字型（標題、中獎姓名）', type: 'text', default: '"Noto Serif TC", "PMingLiU", "Songti TC", serif' },
   { key: 'radius', group: '字型與尺寸', label: '卡片圓角', type: 'text', default: '20px' },
   { key: 'btn-radius', group: '字型與尺寸', label: '按鈕圓角', type: 'text', default: '14px' },
-  { key: 'reg-title-size', group: '字型與尺寸', label: '登記頁標題字級', type: 'text', default: 'clamp(20px, 4.2vw, 28px)' },
+  { key: 'reg-title-size', group: '字型與尺寸', label: '登記頁標題字級', type: 'text', default: 'clamp(28px, 5vw, 40px)' },
   { key: 'draw-title-size', group: '字型與尺寸', label: '抽獎頁標題字級', type: 'text', default: 'clamp(22px, 3vw, 34px)' },
   { key: 'winner-size', group: '字型與尺寸', label: '中獎姓名字級', type: 'text', default: 'clamp(44px, 7vw, 76px)' },
   { key: 'machine-size', group: '字型與尺寸', label: '抽獎機大小', type: 'text', default: 'min(40vh, 80vw, 480px)' },
@@ -44,8 +40,6 @@ const vars = [
 const texts = [
   // 登記頁
   { key: 'reg.brand', group: '登記頁', label: '左上角名稱', default: '世新大學 70 週年' },
-  { key: 'reg.ribbon', group: '登記頁', label: '緞帶文字', default: '校友返校日' },
-  { key: 'reg.en', group: '登記頁', label: '英文副標', default: 'Alumni Homecoming Day' },
   { key: 'reg.title', group: '登記頁', label: '大標題（也是瀏覽器分頁名稱）', default: '世新大學校友抽獎活動' },
   { key: 'reg.intro', group: '登記頁', label: '標題下說明', multiline: true, default: `填寫校友資料完成登記，即可參加現場抽獎。
 每人限登記一次，祝您好運！` },
