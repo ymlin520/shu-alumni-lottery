@@ -38,6 +38,8 @@
   --dept-size: clamp(22px, 3vw, 36px);
   --machine-size: min(33vh, 76vw, 440px);
   --logo-height: 48px;
+  --accent: #e2b75e;
+  --accent-text: #6d0a10;
   --hub-logo-size: 74%;
   --bg-deco-opacity: 0.9;
   --font: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", system-ui, sans-serif;
@@ -149,3 +151,20 @@ input, select { font: inherit; }
   .brand { font-size: 17px; }
   .brand-logo { height: calc(var(--logo-height, 48px) * .84); }
 }
+
+/* ---------- 身分識別：校友／在校生一眼可辨 ---------- */
+.id-badge {
+  display: inline-flex; align-items: center; padding: 6px 20px; border-radius: 999px;
+  font-weight: 900; font-size: 15px; letter-spacing: .22em; white-space: nowrap;
+  color: var(--accent-text);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 65%, white), var(--accent));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, .3), 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.hero .id-badge { margin-bottom: 16px; font-size: 16px; }
+.watermark {
+  position: fixed !important; z-index: 0 !important; left: 50%; bottom: -2.5vw; transform: translateX(-50%);
+  font-family: var(--font-display); font-weight: 900; font-size: 19vw; line-height: 1; letter-spacing: .04em;
+  white-space: nowrap; color: transparent; pointer-events: none; user-select: none;
+  -webkit-text-stroke: 2px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+@media (max-width: 640px) { .id-badge { font-size: 13px; padding: 5px 14px; letter-spacing: .14em; } .watermark { font-size: 24vw; } }

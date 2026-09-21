@@ -14,6 +14,8 @@ const vars = [
   { key: 'muted', group: '配色', label: '次要文字', type: 'color', default: '#e2bba3' },
   { key: 'danger', group: '配色', label: '警示顏色', type: 'color', default: '#ffd166' },
   { key: 'input-bg', group: '配色', label: '輸入框底色', type: 'color', default: 'rgba(40, 2, 6, 0.45)' },
+  { key: 'accent', group: '配色', label: '身分識別色（標籤、浮水印）', type: 'color', default: '#e2b75e' },
+  { key: 'accent-text', group: '配色', label: '身分標籤文字', type: 'color', default: '#6d0a10' },
   // 抽獎機
   { key: 'ring-a', group: '抽獎機', label: '外環亮部', type: 'color', default: '#fff4d2' },
   { key: 'ring-b', group: '抽獎機', label: '外環主色', type: 'color', default: '#d8ac5a' },
@@ -45,6 +47,8 @@ const vars = [
 const texts = [
   // 登記頁
   { key: 'reg.brand', group: '登記頁', label: '左上角名稱', default: '世新大學 70 週年' },
+  { key: 'reg.badge', group: '登記頁', label: '身分標籤（標題上方）', default: '校友場　ALUMNI' },
+  { key: 'reg.watermark', group: '登記頁', label: '背景浮水印（留空不顯示）', default: 'ALUMNI' },
   { key: 'reg.title', group: '登記頁', label: '大標題（也是瀏覽器分頁名稱）', default: '世新大學校友抽獎活動' },
   { key: 'reg.intro', group: '登記頁', label: '標題下說明', multiline: true, default: `填寫校友資料完成登記，即可參加現場抽獎。
 每人限登記一次，祝您好運！` },
@@ -76,6 +80,8 @@ const texts = [
   { key: 'reg.closedText', group: '登記頁', label: '截止畫面內容', default: '本次活動已停止登記，感謝您的關注。' },
   // 抽獎頁
   { key: 'draw.brand', group: '抽獎頁', label: '左上角名稱', default: '世新大學 70 週年' },
+  { key: 'draw.badge', group: '抽獎頁', label: '身分標籤（頂端中央）', default: '校友場　ALUMNI' },
+  { key: 'draw.watermark', group: '抽獎頁', label: '背景浮水印（留空不顯示）', default: 'ALUMNI' },
   { key: 'draw.heading', group: '抽獎頁', label: '大標題', default: '今天的幸運校友是誰？' },
   { key: 'draw.hub', group: '抽獎頁', label: '轉盤中心文字（預設顯示 logo，留空即可）', multiline: true, default: '' },
   { key: 'draw.button', group: '抽獎頁', label: '抽獎按鈕', default: '開始抽獎' },
