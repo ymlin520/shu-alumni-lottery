@@ -1,4 +1,4 @@
-# 每天 16:00 由 Windows 工作排程器呼叫：把校友抽獎系統的程式改動推到 GitHub
+﻿# 每天 16:00 由 Windows 工作排程器呼叫：把校友抽獎系統的程式改動推到 GitHub
 # 只推程式；報名資料 data\ 與 admin-password.txt 已由 .gitignore 排除，不會上傳
 # 推之前會先在「GitHub 上目前的狀態」打一個 auto/日期-時間 tag 當還原點
 $ErrorActionPreference = 'Continue'
