@@ -37,8 +37,9 @@ const vars = [
   { key: 'btn-radius', group: '字型與尺寸', label: '按鈕圓角', type: 'text', default: '14px' },
   { key: 'reg-title-size', group: '字型與尺寸', label: '登記頁標題字級', type: 'text', default: 'clamp(28px, 5vw, 40px)' },
   { key: 'draw-title-size', group: '字型與尺寸', label: '抽獎頁標題字級', type: 'text', default: 'clamp(22px, 3vw, 34px)' },
-  { key: 'winner-size', group: '字型與尺寸', label: '中獎姓名字級', type: 'text', default: 'clamp(44px, 7vw, 76px)' },
-  { key: 'machine-size', group: '字型與尺寸', label: '抽獎機大小', type: 'text', default: 'min(40vh, 80vw, 480px)' },
+  { key: 'winner-size', group: '字型與尺寸', label: '中獎姓名字級', type: 'text', default: 'clamp(64px, 10vw, 128px)' },
+  { key: 'dept-size', group: '字型與尺寸', label: '中獎系所字級', type: 'text', default: 'clamp(22px, 3vw, 36px)' },
+  { key: 'machine-size', group: '字型與尺寸', label: '抽獎機大小', type: 'text', default: 'min(33vh, 76vw, 440px)' },
 ];
 
 const texts = [
@@ -76,13 +77,12 @@ const texts = [
   // 抽獎頁
   { key: 'draw.brand', group: '抽獎頁', label: '左上角名稱', default: '世新大學 70 週年' },
   { key: 'draw.heading', group: '抽獎頁', label: '大標題', default: '今天的幸運校友是誰？' },
-  { key: 'draw.leftPre', group: '抽獎頁', label: '剩餘人數（數字前）', default: '還有' },
-  { key: 'draw.leftPost', group: '抽獎頁', label: '剩餘人數（數字後）', default: '位校友待抽' },
   { key: 'draw.hub', group: '抽獎頁', label: '轉盤中心文字（預設顯示 logo，留空即可）', multiline: true, default: '' },
   { key: 'draw.button', group: '抽獎頁', label: '抽獎按鈕', default: '開始抽獎' },
   { key: 'draw.drawing', group: '抽獎頁', label: '抽獎中按鈕', default: '抽獎中…' },
   { key: 'draw.allDone', group: '抽獎頁', label: '抽完時按鈕', default: '全部抽完了' },
   { key: 'draw.congrats', group: '抽獎頁', label: '中獎標語', default: '恭喜抽中' },
+  { key: 'draw.deptEmpty', group: '抽獎頁', label: '中獎者沒填系所時顯示', default: '（未填系所）' },
   { key: 'draw.former', group: '抽獎頁', label: '原名前綴', default: '原名' },
 ];
 

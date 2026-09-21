@@ -17,12 +17,10 @@
   /* ===== 抽獎舞台（整頁） ===== */
   .stage { min-height: calc(100vh - 90px); padding: 0 16px 12px; text-align: center; position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
   .stage:fullscreen { min-height: 100vh; justify-content: center; background: var(--bg-deco, url(/brand/bg)) center / cover no-repeat, radial-gradient(900px 560px at 50% 40%, var(--glow1) 0%, transparent 70%), linear-gradient(180deg, var(--bg), var(--bg2)); }
-  .stage h2 { margin: 18px 0 4px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
+  .stage h2 { margin: 10px 0 12px; font-size: var(--draw-title-size); letter-spacing: .16em; font-family: var(--font-display); color: var(--gold-hi); }
   .hub-logo { width: var(--hub-logo-size, 74%); height: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
   .hub-text:empty { display: none; }
   .hub-text { position: absolute; bottom: 12%; left: 0; right: 0; font-size: calc(var(--size) * .022); }
-  .stage .left { margin: 0 0 14px; color: var(--text); font-size: 18px; }
-  .stage .left b { color: var(--gold-hi); font-size: 22px; }
   .prize-chip { display: inline-block; margin: 0 0 10px; padding: 4px 16px; border-radius: 999px; border: 1px solid var(--line); background: rgba(216,172,90,.12); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
   .machine { --size: var(--machine-size); width: var(--size); margin: 0 auto; position: relative; }
   .ring {
@@ -68,13 +66,54 @@
   .tray-ball span { color: var(--btn-text); font-weight: 900; font-family: var(--font-display); padding: 0 10%; line-height: 1.15; word-break: break-all; position: relative; z-index: 1; }
   .tray-ball.show { transform: translateX(-50%) scale(1); animation: trayDrop .8s cubic-bezier(.3,1.5,.5,1); }
   @keyframes trayDrop { 0% { transform: translateX(-50%) translateY(-120%) scale(.5); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
-  .draw-btn { margin: 20px auto 0; width: min(320px, 80%); display: block; font-size: 22px; }
-  .result { margin-top: 8px; min-height: 120px; }
+  .draw-btn { margin: 14px auto 0; width: min(320px, 80%); display: block; font-size: 22px; }
+  .result { margin-top: 4px; min-height: 190px; }
+  .result .nm { line-height: 1.1; }
   .result .lbl { color: var(--text); font-size: 20px; letter-spacing: .1em; }
   .result .prize { display: inline-block; margin-left: 8px; padding: 2px 12px; border-radius: 999px; background: rgba(216,172,90,.15); color: var(--gold-hi); font-size: 16px; }
   .result .nm { font-size: var(--winner-size); font-weight: 900; letter-spacing: .14em; font-family: var(--font-display); color: var(--gold-hi); text-shadow: 0 0 24px rgba(216,172,90,.4); margin-top: 4px; }
   .result .meta { color: var(--muted); font-size: 16px; }
-  .result.pop .nm { animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+  .result .dept { font-family: var(--font-display); font-size: var(--dept-size); font-weight: 900; letter-spacing: .12em; color: var(--text);
+    text-shadow: 0 2px 10px rgba(40,0,4,.6); margin-top: 2px; animation: pop .45s cubic-bezier(.3,1.6,.5,1); }
+  .result .nm.waiting { color: var(--gold); letter-spacing: .4em; text-shadow: none; }
+  .result .nm.waiting span { display: inline-block; animation: blink 1s ease-in-out infinite; }
+  .result .nm.waiting span:nth-child(2) { animation-delay: .2s; }
+  .result .nm.waiting span:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+  /* 姓名揭曉：金色漸層字＋放大落下＋背後光芒爆開與旋轉光線 */
+  .nm-wrap { position: relative; display: inline-block; isolation: isolate; }
+  .result .nm.reveal {
+    background: linear-gradient(180deg, #fffbea 0%, var(--gold-hi) 38%, var(--gold) 72%, #fff1c2 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none;
+    filter: drop-shadow(0 0 16px rgba(255, 214, 130, .7)) drop-shadow(0 5px 0 rgba(90, 20, 0, .55));
+    animation: slam .75s cubic-bezier(.2, 1.35, .35, 1) both, glow 1.8s ease-in-out .75s infinite;
+  }
+  @keyframes slam {
+    0% { transform: scale(2.6); opacity: 0; letter-spacing: .6em; }
+    55% { transform: scale(.9); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; letter-spacing: .14em; }
+  }
+  @keyframes glow {
+    50% { filter: drop-shadow(0 0 34px rgba(255, 226, 150, 1)) drop-shadow(0 5px 0 rgba(90, 20, 0, .55)); }
+  }
+  .burst, .rays { position: absolute; left: 50%; top: 50%; pointer-events: none; z-index: -1; border-radius: 50%; }
+  .burst { width: 620px; height: 620px; transform: translate(-50%, -50%) scale(0);
+    background: radial-gradient(circle, rgba(255, 240, 190, .95) 0%, rgba(255, 200, 90, .45) 28%, rgba(255, 160, 60, 0) 62%);
+    animation: burst 1.2s ease-out forwards; }
+  @keyframes burst { 0% { transform: translate(-50%, -50%) scale(0); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; } }
+  .rays { width: 760px; height: 760px; transform: translate(-50%, -50%); opacity: 0;
+    background: repeating-conic-gradient(rgba(255, 222, 150, .30) 0deg 5deg, transparent 5deg 15deg);
+    -webkit-mask: radial-gradient(circle, #000 12%, transparent 62%); mask: radial-gradient(circle, #000 12%, transparent 62%);
+    animation: raysIn .8s ease-out .15s forwards, spin 22s linear infinite; }
+  @keyframes raysIn { to { opacity: 1; } }
+  @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+  .flash { position: fixed; inset: 0; z-index: 30; pointer-events: none;
+    background: radial-gradient(circle at 50% 70%, rgba(255, 240, 200, .75), rgba(255, 210, 120, .25) 45%, transparent 75%);
+    animation: flash .7s ease-out forwards; }
+  @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
+  .tray-ball.hit { animation: trayDrop .8s cubic-bezier(.3,1.5,.5,1), trayGlow 1.8s ease-in-out .8s infinite; }
+  @keyframes trayGlow { 50% { box-shadow: inset -8px -10px 18px rgba(0,0,0,.25), 0 0 34px rgba(255, 220, 140, .9), 0 0 0 4px rgba(255,255,255,.25); } }
+  .tray-ball.waiting span { animation: blink 1s ease-in-out infinite; }
   @keyframes pop { from { transform: scale(.6); } }
   .confetti { position: absolute; top: -12px; width: 9px; height: 14px; z-index: 20; pointer-events: none; animation: fall linear forwards; }
   @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: .8; } }
@@ -102,7 +141,6 @@
 
 <main class="stage" id="stage" hidden>
   <h2 data-t="draw.heading">今天的幸運校友是誰？</h2>
-  <p class="left"><span data-t="draw.leftPre">還有</span> <b id="remain">0</b> <span data-t="draw.leftPost">位校友待抽</span></p>
   <div class="machine">
     <div class="ring">
       <div class="drum" id="drum"><div class="hub"><img class="hub-logo" src="/brand/hub" data-asset="hub" alt=""><span class="hub-text" data-t="draw.hub"></span></div></div>
@@ -150,7 +188,6 @@ async function load() {
   render();
 }
 function render() {
-  $('#remain').textContent = info.remaining;
   if (!drawing) {
     buildBalls(info.remaining);
     $('#drawBtn').disabled = info.remaining === 0;
@@ -228,9 +265,10 @@ window.addEventListener('resize', () => { const { r } = dims(); balls.forEach((b
 document.addEventListener('fullscreenchange', () => setTimeout(() => { const { r } = dims(); balls.forEach((b) => b.el.style.width = b.el.style.height = r * 2 + 'px'); }, 50));
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+const REVEAL_DELAY = 3000; // 系所出現後，等幾毫秒再揭曉姓名
 function confetti() {
   const cols = ['#f7e3b0', '#d8ac5a', '#fff4d2', '#e0303a', '#ff6b6b', '#c9793f', '#ffffff'];
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 120; i++) {
     const c = document.createElement('div');
     c.className = 'confetti';
     c.style.left = Math.random() * 100 + '%';
@@ -247,13 +285,13 @@ $('#drawBtn').addEventListener('click', async () => {
   if (drawing) return;
   drawing = true;
   const btn = $('#drawBtn'); btn.disabled = true; btn.textContent = T('draw.drawing');
-  $('#trayBall').classList.remove('show'); $('#result').innerHTML = ''; $('#result').classList.remove('pop');
+  $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = ''; $('#result').classList.remove('pop');
   // 攪拌與抽籤同時開始，按下後 5 秒內出現姓名；獎項以後台設定為準
   mixing = true; drum.classList.add('spinning');
   let res;
   try {
     const req = DESIGN_PREVIEW
-      ? Promise.resolve({ winner: { name: '王小明', formerName: '', prize: info.settings.prize }, remaining: Math.max(info.remaining - 1, 0) })
+      ? Promise.resolve({ winner: { name: '王小明', dept: '新聞學系', formerName: '', prize: info.settings.prize }, remaining: Math.max(info.remaining - 1, 0) })
       : api('/api/admin/draw', { method: 'POST', body: {} });
     [res] = await Promise.all([req, sleep(3800)]);
   } catch (err) { mixing = false; drum.classList.remove('spinning'); alert(err.message); drawing = false; render(); return; }
@@ -268,18 +306,32 @@ $('#drawBtn').addEventListener('click', async () => {
     requestAnimationFrame(() => { pick.el.style.transform = `translate(${R - r}px, ${D + r}px)`; pick.el.style.opacity = '0'; });
     await sleep(500);
   }
-  // 出獎
+  // 出獎第一段：先顯示系所，姓名位置先放等待動畫（同名時靠系所區分）
   const w = res.winner, shown = maskName(w.name);
-  const nameEl = $('#trayName');
-  nameEl.textContent = shown;
-  nameEl.style.fontSize = `calc(var(--size) * ${[...shown].length <= 3 ? .062 : [...shown].length <= 5 ? .048 : .034})`;
-  $('#trayBall').classList.add('show');
+  const nameEl = $('#trayName'), tray = $('#trayBall');
+  nameEl.textContent = '？';
+  nameEl.style.fontSize = 'calc(var(--size) * .11)';
+  tray.classList.add('show', 'waiting');
   await sleep(300);
   $('#result').innerHTML = `<div class="lbl">${esc(T('draw.congrats'))}</div>
-    <div class="nm">${esc(shown)}</div>
-    ${w.formerName && !info.settings.maskName ? `<div class="meta">（${esc(T('draw.former'))} ${esc(w.formerName)}）</div>` : ''}`;
-  $('#result').classList.add('pop');
-  confetti();
+    <div class="dept">${esc(w.dept || T('draw.deptEmpty'))}</div>
+    <div class="nm-wrap"><div class="nm waiting"><span>•</span><span>•</span><span>•</span></div></div>`;
+  await sleep(REVEAL_DELAY);
+
+  // 第二段：揭曉姓名大字
+  nameEl.textContent = shown;
+  nameEl.style.fontSize = `calc(var(--size) * ${[...shown].length <= 3 ? .062 : [...shown].length <= 5 ? .048 : .034})`;
+  tray.classList.remove('waiting', 'show'); void tray.offsetWidth; tray.classList.add('show', 'hit');
+  const nm = $('#result .nm');
+  const len = [...shown].length;
+  nm.style.fontSize = len <= 4 ? '' : len <= 8 ? 'calc(var(--winner-size) * .72)' : 'calc(var(--winner-size) * .48)';
+  nm.classList.remove('waiting');
+  nm.textContent = shown;
+  nm.classList.add('reveal');
+  nm.insertAdjacentHTML('beforebegin', '<div class="rays"></div><div class="burst"></div>');
+  if (w.formerName && !info.settings.maskName) $('#result .nm-wrap').insertAdjacentHTML('afterend', `<div class="meta">（${esc(T('draw.former'))} ${esc(w.formerName)}）</div>`);
+  const fl = document.createElement('div'); fl.className = 'flash'; $('#stage').appendChild(fl); setTimeout(() => fl.remove(), 800);
+  confetti(); setTimeout(confetti, 450);
   info.remaining = res.remaining;
   if (pick) { pick.el.remove(); balls = balls.filter((b) => b !== pick); }
   drawing = false;

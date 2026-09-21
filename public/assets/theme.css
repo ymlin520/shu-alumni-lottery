@@ -34,8 +34,9 @@
   --tray-ball: #f0c75e;
   --reg-title-size: clamp(28px, 5vw, 40px);
   --draw-title-size: clamp(22px, 3vw, 34px);
-  --winner-size: clamp(44px, 7vw, 76px);
-  --machine-size: min(40vh, 80vw, 480px);
+  --winner-size: clamp(64px, 10vw, 128px);
+  --dept-size: clamp(22px, 3vw, 36px);
+  --machine-size: min(33vh, 76vw, 440px);
   --logo-height: 48px;
   --hub-logo-size: 74%;
   --bg-deco-opacity: 0.9;
