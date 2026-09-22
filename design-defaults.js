@@ -27,6 +27,8 @@ const vars = [
   { key: 'ball-3', group: '抽獎機', label: '彩球 3（朱紅）', type: 'color', default: '#e0303a' },
   { key: 'ball-4', group: '抽獎機', label: '彩球 4（古銅）', type: 'color', default: '#c9793f' },
   { key: 'ball-5', group: '抽獎機', label: '彩球 5（香檳）', type: 'color', default: '#d8c08a' },
+  { key: 'ball-count', group: '抽獎機', label: '彩球數量（預設裝滿 32 顆）', type: 'text', default: '32' },
+  { key: 'ball-size', group: '抽獎機', label: '彩球大小（佔球槽比例，0.04～0.08）', type: 'text', default: '0.062' },
   { key: 'tray-ball', group: '抽獎機', label: '中獎球', type: 'color', default: '#f0c75e' },
   // 抽獎畫面（抽獎時的尺寸、位置、秒數）
   { key: 'mix-speed', group: '抽獎畫面', label: '彩球轉速（0.1 很慢～1 正常）', type: 'text', default: '0.3' },
