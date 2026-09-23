@@ -78,16 +78,14 @@
           <input class="input" id="formerName" maxlength="40" data-tp="reg.formerPh" placeholder="請填寫改名前的姓名">
         </div>
       </div>
+      <div class="field">
+        <label for="dept"><span data-t="reg.dept">系所</span><span class="req">*</span></label>
+        <input class="input" id="dept" maxlength="60" data-tp="reg.deptPh" placeholder="例：新聞學系">
+      </div>
       <div class="divider" data-t="reg.optional">以下為選填</div>
-      <div class="row2">
-        <div class="field">
-          <label for="dept"><span data-t="reg.dept">系所</span><span class="opt" data-t="reg.optTag">選填</span></label>
-          <input class="input" id="dept" maxlength="60" data-tp="reg.deptPh" placeholder="例：新聞學系">
-        </div>
-        <div class="field">
-          <label for="studentNo"><span data-t="reg.studentNo">學號</span><span class="opt" data-t="reg.optTag">選填</span></label>
-          <input class="input" id="studentNo" maxlength="20" data-tp="reg.studentNoPh" placeholder="例：A10501234">
-        </div>
+      <div class="field">
+        <label for="studentNo"><span data-t="reg.studentNo">學號</span><span class="opt" data-t="reg.optTag">選填</span></label>
+        <input class="input" id="studentNo" maxlength="20" data-tp="reg.studentNoPh" placeholder="例：A10501234">
       </div>
       <button class="btn-gold submit" id="submit" type="submit" data-t="reg.submit">送出登記</button>
       <p class="privacy" data-t="reg.privacy">您提供的個人資料僅用於本次校友抽獎活動之身分核對與得獎聯繫，活動結束後依規定銷毀。</p>
@@ -170,6 +168,7 @@ $('#f').addEventListener('submit', async (e) => {
   if (!body.idNo) return showErr('請填寫' + T(idType === 'twid' ? 'reg.twid' : 'reg.passport') + '。', 'idNo');
   if (!body.name) return showErr('請填寫' + T('reg.name') + '。', 'name');
   if (body.renamed && !body.formerName) return showErr('勾選曾改名，請填寫改名前的姓名。', 'formerName');
+  if (!body.dept) return showErr('請填寫' + T('reg.dept') + '。', 'dept');
   const btn = $('#submit'); btn.disabled = true; btn.textContent = '送出中…';
   try {
     const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });

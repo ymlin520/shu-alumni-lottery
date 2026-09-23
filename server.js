@@ -116,6 +116,7 @@ function parseEntry(b, selfId) {
   if (idType === 'passport' && !/^[A-Z0-9]{5,20}$/.test(idNo)) return { error: '護照號碼格式不正確（5–20 碼英數字）。', field: 'idNo' };
   if (!name) return { error: '請填寫姓名。', field: 'name' };
   if (renamed && !formerName) return { error: '勾選曾改名，請填寫改名前的姓名。', field: 'formerName' };
+  if (!dept) return { error: '請填寫系所。', field: 'dept' };
   const dup = db.entries.find((e) => e.idNo === idNo && e.id !== selfId);
   if (dup) return { code: 409, error: `此證件號碼已於 ${new Date(dup.createdAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })} 完成登記（登記編號 ${dup.no}），每人限登記一次。`, field: 'idNo' };
   return { data: { idType, idNo, name, renamed, formerName, dept, studentNo } };
