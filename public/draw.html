@@ -92,8 +92,15 @@
   }
   .tray-ball span { color: var(--btn-text); font-weight: 900; font-family: var(--font-display); padding: 0 10%; line-height: 1.15; word-break: break-all; position: relative; z-index: 1; }
   /* 「？」球與中獎球掉進承接槽的速度，由 --qball-in-ms 控制 */
-  .tray-ball.show { transform: translateX(-50%) scale(1); animation: trayDrop calc(var(--qball-in-ms, 1800) * 1ms) cubic-bezier(.25,1.25,.45,1); }
-  @keyframes trayDrop { 0% { transform: translateX(-50%) translateY(-120%) scale(.5); } 100% { transform: translateX(-50%) translateY(0) scale(1); } }
+  .tray-ball.show { transform: translateX(-50%) translateY(var(--tray-ball-dy, 0px)) scale(1);
+    animation: trayDrop calc(var(--qball-in-ms, 1800) * 1ms) cubic-bezier(.25,1.25,.45,1); }
+  /* 球從中央 70 logo 的位置冒出來（-115% 剛好是球槽圓心），由小變大，停在畫面正中央。
+     --tray-ball-dy 由 JS 量出來（承接槽位置 → 版面正中央要移動多少）。 */
+  @keyframes trayDrop {
+    0%   { transform: translateX(-50%) translateY(-115%) scale(.06); opacity: 0; }
+    14%  { transform: translateX(-50%) translateY(-112%) scale(.3); opacity: 1; }
+    100% { transform: translateX(-50%) translateY(var(--tray-ball-dy, 0px)) scale(1); opacity: 1; }
+  }
   /* 按鈕的框也要跟著字一起放大（theme.css 的 padding 是給一般頁面的 20px 字用的） */
   .draw-btn { margin: calc(2 * var(--vh)) auto 0; width: min(1260px, 88%); display: block;
     font-size: var(--draw-btn-size, 82px); padding: calc(2.3 * var(--vh)) calc(3.6 * var(--vw));
@@ -107,11 +114,14 @@
     background: radial-gradient(ellipse 75% 60% at 50% 30%, rgba(20, 0, 2, var(--reveal-backdrop, .84)), rgba(20, 0, 2, calc(var(--reveal-backdrop, .84) * .72)) 55%, rgba(20, 0, 2, calc(var(--reveal-backdrop, .84) * .36))); }
   .reveal-inner { text-align: center; max-width: 100%; }
   .reveal .lbl { color: var(--text); font-size: clamp(43px, calc(2.3 * var(--vw)), 68px); font-weight: 700; letter-spacing: .35em; text-shadow: 0 4px 21px rgba(0,0,0,.5); }
-  .reveal .dept { font-family: var(--font-display); font-size: var(--dept-size); font-weight: 900; letter-spacing: .14em; color: var(--gold-hi);
+  /* padding-left 補回 letter-spacing 在最後一個字後面多出來的空隙，字才會真的置中 */
+  .reveal .dept { font-family: var(--font-display); font-size: var(--dept-size); font-weight: 900; color: var(--gold-hi);
+    letter-spacing: var(--dept-spacing, 0.5em); padding-left: var(--dept-spacing, 0.5em);
     text-shadow: 0 6px 30px rgba(0, 0, 0, .55); margin-top: 17px; animation: pop .5s cubic-bezier(.3,1.6,.5,1); }
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
-  .reveal .nm { font-size: var(--winner-size); line-height: 1.12; font-weight: 900; font-family: var(--font-display); letter-spacing: .06em; white-space: nowrap;
+  .reveal .nm { font-size: var(--winner-size); line-height: 1.12; font-weight: 900; font-family: var(--font-display); white-space: nowrap;
+    letter-spacing: var(--name-spacing, 0.3em); padding-left: var(--name-spacing, 0.3em);
     filter: drop-shadow(0 0 43px rgba(255, 214, 130, .75)) drop-shadow(0 13px 0 rgba(90, 20, 0, .55)); }
   .reveal .nm.waiting { color: var(--gold); font-size: calc(var(--winner-size) * .45); letter-spacing: .4em; filter: none; }
   .reveal .nm.waiting span { display: inline-block; animation: blink 1s ease-in-out infinite; }
@@ -153,7 +163,8 @@
     background: radial-gradient(circle at 50% 30%, rgba(255, 240, 200, .75), rgba(255, 210, 120, .25) 45%, transparent 75%);
     animation: flash .7s ease-out forwards; }
   @keyframes flash { from { opacity: 1; } to { opacity: 0; } }
-  .tray-ball.hit { animation: trayDrop calc(var(--qball-in-ms, 1800) * 1ms) cubic-bezier(.25,1.25,.45,1),
+  .tray-ball.hit { transform: translateX(-50%) translateY(var(--tray-ball-dy, 0px)) scale(1);
+    animation: trayDrop calc(var(--qball-in-ms, 1800) * 1ms) cubic-bezier(.25,1.25,.45,1),
                               trayGlow 1.8s ease-in-out calc(var(--qball-in-ms, 1800) * 1ms) infinite; }
   @keyframes trayGlow { 50% { box-shadow: inset -17px -21px 38px rgba(0,0,0,.25), 0 0 73px rgba(255, 220, 140, .9), 0 0 0 9px rgba(255,255,255,.25); } }
   .tray-ball.waiting span { animation: blink 1s ease-in-out infinite; }
@@ -245,6 +256,20 @@ function fitStage() {
   const cover = Math.max(sw / w, sh / h); // 填滿螢幕就夠了，不要再放大（版面尺寸剛好時＝1:1）
   const s = Math.min(safe, cover);
   if (s > 0) cv.style.setProperty('--stage-scale', s);
+  centerTrayBall();
+}
+// 量出「承接槽的球」要往上移多少才會落在版面正中央，寫進 --tray-ball-dy
+function centerTrayBall() {
+  const cv = $('#canvas'), tb = $('#trayBall');
+  if (!cv || !tb || $('#stage').hidden) return;
+  // 掉落動畫進行中量到的是半途位置，跳過
+  if (document.getAnimations().some((a) => a.effect && a.effect.target === tb && a.animationName === 'trayDrop' && a.playState === 'running')) return;
+  cv.style.setProperty('--tray-ball-dy', '0px'); // 先歸零再量原始位置
+  const s = parseFloat(cv.style.getPropertyValue('--stage-scale')) || 1;
+  const c = cv.getBoundingClientRect(), b = tb.getBoundingClientRect();
+  if (!c.height) return;
+  const dy = ((c.top + c.bottom) / 2 - (b.top + b.bottom) / 2) / s;
+  cv.style.setProperty('--tray-ball-dy', Math.round(dy) + 'px');
 }
 window.addEventListener('resize', fitStage);
 document.addEventListener('fullscreenchange', () => setTimeout(fitStage, 60));
@@ -278,6 +303,7 @@ document.addEventListener('previewview', (e) => {
     $('#trayBall').classList.add('show');
     $('#reveal').classList.add('show'); $('#stage').classList.add('revealing');
   } else {
+    stopConfetti();
     $('#reveal').classList.remove('show'); $('#stage').classList.remove('revealing');
     $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = '';
   }
@@ -386,9 +412,9 @@ function easeSpeed(from, to, ms) {
   });
 }
 const REVEAL_DELAY = 3000; // 系所出現後，等幾毫秒再揭曉姓名
-function confetti() {
+function confetti(n = 120) {
   const cols = ['#f7e3b0', '#d8ac5a', '#fff4d2', '#e0303a', '#ff6b6b', '#c9793f', '#ffffff'];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < n; i++) {
     const c = document.createElement('div');
     c.className = 'confetti';
     c.style.left = Math.random() * 100 + '%';
@@ -400,11 +426,23 @@ function confetti() {
     setTimeout(() => c.remove(), 5000);
   }
 }
+// 中獎畫面期間持續灑花，直到下一輪開始（或回到抽獎前）
+let confettiTimer = 0;
+function startConfetti() {
+  stopConfetti();
+  confetti(120);
+  setTimeout(() => confetti(90), 450);
+  confettiTimer = setInterval(() => confetti(50), cssNum('--confetti-every-ms', 1200));
+}
+function stopConfetti() {
+  if (confettiTimer) { clearInterval(confettiTimer); confettiTimer = 0; }
+}
 
 $('#drawBtn').addEventListener('click', async () => {
   if (drawing) return;
   drawing = true;
   const btn = $('#drawBtn'); btn.disabled = true; btn.textContent = T('draw.drawing');
+  stopConfetti();
   $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = '';
   $('#reveal').classList.remove('show'); $('#stage').classList.remove('revealing');
   // 攪拌與抽籤同時開始；獎項以後台設定為準
@@ -437,6 +475,7 @@ $('#drawBtn').addEventListener('click', async () => {
   const nameEl = $('#trayName'), tray = $('#trayBall');
   nameEl.textContent = '？';
   nameEl.style.fontSize = 'calc(var(--size) * .11)';
+  centerTrayBall(); // 球停在版面正中央
   tray.classList.add('show', 'waiting');
   // 「？」球慢慢掉下來並停留一下，之後揭曉層才蓋上來（蓋上後抽獎機會變暗）
   await sleep(cssNum('--qball-in-ms', 1800) + cssNum('--qball-hold-ms', 2200));
@@ -444,6 +483,7 @@ $('#drawBtn').addEventListener('click', async () => {
     <div class="dept">${esc(w.dept || T('draw.deptEmpty'))}</div>
     <div class="nm-wrap"><div class="nm waiting"><span>•</span><span>•</span><span>•</span></div></div>`;
   $('#reveal').classList.add('show'); $('#stage').classList.add('revealing');
+  centerTrayBall(); // 揭曉時按鈕改成絕對定位、版面會位移，重算一次讓球維持在正中央
   await sleep(cssNum('--reveal-delay', REVEAL_DELAY));
 
   // 第二段：姓名一個字一個字出現
@@ -454,13 +494,15 @@ $('#drawBtn').addEventListener('click', async () => {
   nm.style.fontSize = chars.length <= 4 ? '' : chars.length <= 8 ? 'calc(var(--winner-size) * .6)' : 'calc(var(--winner-size) * .4)';
   nm.insertAdjacentHTML('beforebegin', '<div class="rays"></div>');
   const charDelay = cssNum('--name-char-delay', 650);
-  for (const c of chars) {
+  const surnameDelay = cssNum('--surname-delay', 3000); // 姓出現後先停一下，再接著出名字
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i];
     const sp = document.createElement('span');
     sp.className = 'ch';
     sp.textContent = c === ' ' ? String.fromCharCode(160) : c;
     nm.appendChild(sp);
     const bu = document.createElement('div'); bu.className = 'burst'; nm.before(bu); setTimeout(() => bu.remove(), 1300);
-    await sleep(charDelay);
+    await sleep(i === 0 ? surnameDelay : charDelay);
   }
   nm.classList.add('done');
   nameEl.textContent = shown;
@@ -468,7 +510,7 @@ $('#drawBtn').addEventListener('click', async () => {
   tray.classList.remove('waiting', 'show'); void tray.offsetWidth; tray.classList.add('show', 'hit');
   if (w.formerName && !info.settings.maskName) $('#result .nm-wrap').insertAdjacentHTML('afterend', `<div class="meta">（${esc(T('draw.former'))} ${esc(w.formerName)}）</div>`);
   const fl = document.createElement('div'); fl.className = 'flash'; $('#canvas').appendChild(fl); setTimeout(() => fl.remove(), 800);
-  confetti(); setTimeout(confetti, 450);
+  startConfetti();
   info.remaining = res.remaining;
   if (pick) { pick.el.remove(); balls = balls.filter((b) => b !== pick); }
   drawing = false;
