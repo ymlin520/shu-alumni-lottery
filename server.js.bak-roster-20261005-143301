@@ -103,32 +103,9 @@ const clientIp = (req) => req.headers['cf-connecting-ip'] || req.socket.remoteAd
 
 const publicEntry = (e, winnerSet) => ({
   id: e.id, no: e.no, name: e.name, renamed: e.renamed, formerName: e.formerName,
-  dept: e.dept, className: e.className || '', phone: e.phone || '', email: e.email || '',
-  studentNo: e.studentNo, idType: e.idType, idMasked: maskId(e.idNo),
-  source: e.source || '', registered: !!e.registered, registeredAt: e.registeredAt || null,
+  dept: e.dept, studentNo: e.studentNo, idType: e.idType, idMasked: maskId(e.idNo),
   createdAt: e.createdAt, won: winnerSet.has(e.id),
 });
-
-// ---------- 現場登記＝用身分證號在校友名冊裡核對姓名 ----------
-// 名冊由 data/db.json 的 entries 匯入而來；核對成功才把那筆標成「已登記」，
-// 抽獎只從已登記的人裡面抽。
-const normId = (v) => clean(v, 30).toUpperCase().replace(/[\s-]/g, '');
-const normName = (v) => clean(v, 40).replace(/\s/g, '').replace(/臺/g, '台');
-
-function checkIn(b) {
-  const idNo = normId(b.idNo);
-  const name = clean(b.name, 40);
-  if (!idNo) return { code: 400, error: '請填寫身分證號。', field: 'idNo' };
-  if (!name) return { code: 400, error: '請填寫姓名。', field: 'name' };
-  const entry = db.entries.find((e) => e.idNo === idNo);
-  if (!entry) return { code: 404, error: '查無此身分證號，請確認輸入是否正確，或洽現場服務台。', field: 'idNo' };
-  if (normName(entry.name) !== normName(name)) return { code: 400, error: '姓名有誤，請確認與校友名冊上的姓名一致。', field: 'name' };
-  if (entry.registered) return { already: true, entry };
-  entry.registered = true;
-  entry.registeredAt = new Date().toISOString();
-  save();
-  return { entry };
-}
 function parseEntry(b, selfId) {
   const idType = b.idType === 'passport' ? 'passport' : 'twid';
   const idNo = clean(b.idNo, 20).toUpperCase().replace(/\s|-/g, '');
@@ -136,9 +113,6 @@ function parseEntry(b, selfId) {
   const renamed = !!b.renamed;
   const formerName = renamed ? clean(b.formerName, 40) : '';
   const dept = clean(b.dept, 60);
-  const className = clean(b.className, 120);
-  const phone = clean(b.phone, 40);
-  const email = clean(b.email, 120);
   const studentNo = clean(b.studentNo, 20).toUpperCase();
   if (idType === 'twid' && !validTwId(idNo)) return { error: '身分證字號格式不正確，請再確認。', field: 'idNo' };
   if (idType === 'passport' && !/^[A-Z0-9]{5,20}$/.test(idNo)) return { error: '護照號碼格式不正確（5–20 碼英數字）。', field: 'idNo' };
@@ -147,7 +121,7 @@ function parseEntry(b, selfId) {
   if (!dept) return { error: '請填寫系所。', field: 'dept' };
   const dup = db.entries.find((e) => e.idNo === idNo && e.id !== selfId);
   if (dup) return { code: 409, error: `此證件號碼已於 ${new Date(dup.createdAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })} 完成登記（登記編號 ${dup.no}），每人限登記一次。`, field: 'idNo' };
-  return { data: { idType, idNo, name, renamed, formerName, dept, className, phone, email, studentNo } };
+  return { data: { idType, idNo, name, renamed, formerName, dept, studentNo } };
 }
 function addEntry(data) {
   const no = 'A' + String(db.entries.reduce((mx, e) => Math.max(mx, Number(e.no.slice(1))), 0) + 1).padStart(4, '0');
@@ -157,7 +131,7 @@ function addEntry(data) {
 }
 function remaining() {
   const won = new Set(db.winners.map((w) => w.entryId));
-  return db.entries.filter((e) => e.registered && !won.has(e.id));
+  return db.entries.filter((e) => !won.has(e.id));
 }
 
 // ---------- 設計（前台 CSS 變數、文字、自訂 CSS） ----------
@@ -267,17 +241,16 @@ async function handle(req, res) {
 
   // 前台
   if (m === 'GET' && p === '/api/status') {
-    // count = 現場已報到人數；remaining = 已報到且還沒中獎
-    return send(res, 200, { title: db.settings.title, open: db.settings.open, count: db.entries.filter((e) => e.registered).length, remaining: remaining().length });
+    return send(res, 200, { title: db.settings.title, open: db.settings.open, count: db.entries.length });
   }
   if (m === 'POST' && p === '/api/register') {
-    // 現場大家共用校內 Wi-Fi 會是同一個對外 IP，上限放寬到每分鐘 150 次才不會擋到排隊報到的人
-    if (limited(clientIp(req), 150)) return send(res, 429, { error: '送出太頻繁，請稍候一分鐘再試。' });
+    if (limited(clientIp(req))) return send(res, 429, { error: '送出太頻繁，請稍候一分鐘再試。' });
     if (!db.settings.open) return send(res, 403, { error: '本次登記已截止，感謝您的參與。' });
     let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
-    const v = checkIn(b);
+    const v = parseEntry(b);
     if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
-    return send(res, 200, { ok: true, already: !!v.already, no: v.entry.no, name: v.entry.name, dept: v.entry.dept });
+    const entry = addEntry(v.data);
+    return send(res, 200, { ok: true, no: entry.no, name: entry.name });
   }
 
   // 後台登入
@@ -362,9 +335,7 @@ async function handle(req, res) {
       const pool = remaining();
       if (!pool.length) return send(res, 400, { error: '已經沒有待抽的校友了。' });
       const e = pool[crypto.randomInt(pool.length)];
-      const w = { id: crypto.randomUUID(), entryId: e.id, no: e.no, name: e.name, formerName: e.formerName, dept: e.dept,
-        className: e.className || '', phone: e.phone || '', email: e.email || '', studentNo: e.studentNo, idMasked: maskId(e.idNo),
-        prize: clean(b.prize, 30) || db.settings.prize || '', drawnAt: new Date().toISOString() };
+      const w = { id: crypto.randomUUID(), entryId: e.id, no: e.no, name: e.name, formerName: e.formerName, dept: e.dept, studentNo: e.studentNo, idMasked: maskId(e.idNo), prize: clean(b.prize, 30) || db.settings.prize || '', drawnAt: new Date().toISOString() };
       db.winners.push(w); save();
       return send(res, 200, { ok: true, winner: w, remaining: pool.length - 1 });
     }
@@ -377,15 +348,8 @@ async function handle(req, res) {
       let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
       const v = parseEntry(b);
       if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
-      const entry = addEntry({ ...v.data, addedBy: 'admin', source: 'manual', registered: true, registeredAt: new Date().toISOString() });
+      const entry = addEntry({ ...v.data, addedBy: 'admin' });
       return send(res, 200, { ok: true, entry: publicEntry(entry, winnerSet) });
-    }
-    if (m === 'POST' && p === '/api/admin/entries/unregister') {
-      // 名冊保留，只把全部人改回「未登記」（活動前清掉測試報到用）
-      let n = 0;
-      for (const e of db.entries) if (e.registered) { e.registered = false; e.registeredAt = null; n++; }
-      db.winners = []; save();
-      return send(res, 200, { ok: true, reset: n });
     }
     if (m === 'POST' && p === '/api/admin/entries/reset') {
       const n = db.entries.length;
@@ -405,8 +369,7 @@ async function handle(req, res) {
       if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
       Object.assign(e, v.data, { updatedAt: new Date().toISOString() });
       // 中獎紀錄一併同步，投影畫面與匯出才不會顯示舊資料
-      for (const w of db.winners) if (w.entryId === e.id) Object.assign(w, { name: e.name, formerName: e.formerName, dept: e.dept,
-        className: e.className || '', phone: e.phone || '', email: e.email || '', studentNo: e.studentNo, idMasked: maskId(e.idNo) });
+      for (const w of db.winners) if (w.entryId === e.id) Object.assign(w, { name: e.name, formerName: e.formerName, dept: e.dept, studentNo: e.studentNo, idMasked: maskId(e.idNo) });
       save();
       return send(res, 200, { ok: true, entry: publicEntry(e, winnerSet) });
     }
@@ -418,13 +381,11 @@ async function handle(req, res) {
     if (m === 'GET' && p === '/api/admin/export.csv') {
       const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
       const winMap = new Map(db.winners.map((w) => [w.entryId, w]));
-      const when = (v) => (v ? new Date(v).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '');
-      const rows = [['編號', '身分證號', '姓名', '系所', '班級', '電話', 'Email', '是否已登記', '登記時間', '來源', '中獎獎項', '抽出時間']];
+      const rows = [['登記編號', '證件類別', '證件號碼', '姓名', '曾改名', '原姓名', '系所', '學號', '登記時間', '中獎獎項', '抽出時間']];
       for (const e of db.entries) {
         const w = winMap.get(e.id);
-        rows.push([e.no, e.idNo, e.name, e.dept, e.className || '', e.phone || '', e.email || '',
-          e.registered ? '已登記' : '', when(e.registeredAt), e.source === 'manual' ? '後台補登' : '匯入名冊',
-          w ? w.prize : '', w ? when(w.drawnAt) : '']);
+        rows.push([e.no, e.idType === 'passport' ? '護照' : '身分證', e.idNo, e.name, e.renamed ? '是' : '', e.formerName, e.dept, e.studentNo,
+          new Date(e.createdAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }), w ? w.prize : '', w ? new Date(w.drawnAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '']);
       }
       const csv = '﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n');
       res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent('世新校友抽獎名單.csv'), 'Cache-Control': 'no-store' });

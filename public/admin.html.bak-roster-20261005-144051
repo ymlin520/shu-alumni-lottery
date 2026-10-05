@@ -120,7 +120,7 @@
       </div>
       <p class="sub">抽獎畫面抽出後會自動出現在這裡。撤銷單筆或按「重新抽獎」後，該校友會回到待抽名單，可以重新抽過。</p>
       <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>獎項</th><th>編號</th><th>姓名</th><th>系所</th><th>班級（名冊原始資料）</th><th>電話</th><th>Email</th><th>證件</th><th>抽出時間</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>獎項</th><th>姓名</th><th>系所</th><th>學號</th><th>證件</th><th>抽出時間</th><th></th></tr></thead>
         <tbody id="winnerRows"></tbody>
       </table></div>
     </section>
@@ -130,29 +130,22 @@
   <div id="tab-list" hidden>
     <section class="card panel" style="margin-top:0">
       <div class="stats">
-        <div class="stat"><b id="sTotal">0</b><span>名冊人數</span></div>
-        <div class="stat"><b id="sReg">0</b><span>已登記（報到）</span></div>
+        <div class="stat"><b id="sTotal">0</b><span>已登記</span></div>
         <div class="stat"><b id="sWon">0</b><span>已中獎</span></div>
         <div class="stat"><b id="sLeft">0</b><span>待抽</span></div>
+        <div class="stat"><b id="sRenamed">0</b><span>曾改名</span></div>
       </div>
       <div class="toolbar">
-        <input class="input" id="search" placeholder="搜尋姓名、系所、班級、電話、Email、編號">
-        <div class="seg" role="radiogroup" id="regFilter">
-          <button type="button" class="on" data-reg="all">全部</button>
-          <button type="button" data-reg="yes">已登記</button>
-          <button type="button" data-reg="no">未登記</button>
-        </div>
+        <input class="input" id="search" placeholder="搜尋姓名、原姓名、系所、學號、編號">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn-ghost" id="addEntry" style="border-color:var(--gold);color:var(--gold-hi)">＋ 新增校友</button>
           <button class="btn-ghost" id="refresh">重新整理</button>
           <a class="btn-ghost" href="/api/admin/export.csv" style="text-decoration:none">匯出 CSV（含完整證件號）</a>
-          <button class="btn-ghost" id="unregAll">全部改為未登記</button>
           <button class="btn-ghost btn-danger" id="clearEntries">清空名單</button>
         </div>
       </div>
-      <p class="sub" id="listNote" style="margin:0 0 8px"></p>
       <div class="table-wrap"><table>
-        <thead><tr><th>編號</th><th>姓名</th><th>系所</th><th>班級（名冊原始資料）</th><th>電話</th><th>Email</th><th>證件</th><th>登記時間</th><th>狀態</th><th></th></tr></thead>
+        <thead><tr><th>編號</th><th>姓名</th><th>原姓名</th><th>系所</th><th>學號</th><th>證件</th><th>登記時間</th><th>狀態</th><th></th></tr></thead>
         <tbody id="entryRows"></tbody>
       </table></div>
     </section>
@@ -181,10 +174,8 @@
     <div class="field" id="mFormerWrap" hidden><label for="mFormerName">改名前姓名<span class="req">*</span></label>
       <input class="input" id="mFormerName" maxlength="40" placeholder="請填寫改名前的姓名"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="field"><label for="mDept">系所（抽獎畫面顯示這個）<span class="req">*</span></label><input class="input" id="mDept" maxlength="60" placeholder="例：圖傳四甲"></div>
-      <div class="field"><label for="mClassName">班級（名冊原始資料）<span class="opt">選填</span></label><input class="input" id="mClassName" maxlength="120" placeholder="例：A-學士班 圖傳四甲 應畢109年"></div>
-      <div class="field"><label for="mPhone">電話<span class="opt">選填</span></label><input class="input" id="mPhone" maxlength="40" placeholder="例：0912345678"></div>
-      <div class="field"><label for="mEmail">Email<span class="opt">選填</span></label><input class="input" id="mEmail" maxlength="120" placeholder="例：alumni@shu.edu.tw"></div>
+      <div class="field"><label for="mDept">系所<span class="req">*</span></label><input class="input" id="mDept" maxlength="60" placeholder="例：新聞學系"></div>
+      <div class="field"><label for="mStudentNo">學號<span class="opt">選填</span></label><input class="input" id="mStudentNo" maxlength="20" placeholder="例：A10501234"></div>
     </div>
   </div>
   <div class="modal-foot">
@@ -196,8 +187,6 @@
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const dash = '<span class="muted">—</span>';
-let regFilter = 'all';
 const fmt = (iso) => new Date(iso).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 let state = null;
 
@@ -247,42 +236,28 @@ function renderAll() {
 function renderWinners() {
   const rows = state.winners.slice().reverse();
   $('#winnerRows').innerHTML = rows.length ? rows.map((w, i) => `<tr>
-    <td class="num">${rows.length - i}</td><td>${w.prize ? `<span class="tag">${esc(w.prize)}</span>` : dash}</td>
-    <td class="num">${esc(w.no)}</td>
+    <td class="num">${rows.length - i}</td><td>${w.prize ? `<span class="tag">${esc(w.prize)}</span>` : '<span class="muted">—</span>'}</td>
     <td><b>${esc(w.name)}</b>${w.formerName ? `<span class="muted">（原名 ${esc(w.formerName)}）</span>` : ''}</td>
-    <td>${esc(w.dept) || dash}</td><td class="muted">${esc(w.className) || dash}</td>
-    <td>${esc(w.phone) || dash}</td><td>${esc(w.email) || dash}</td>
+    <td>${esc(w.dept) || '<span class="muted">—</span>'}</td><td>${esc(w.studentNo) || '<span class="muted">—</span>'}</td>
     <td class="muted">${esc(w.idMasked)}</td><td class="muted">${fmt(w.drawnAt)}</td>
     <td><button class="btn-ghost btn-danger" data-undo="${w.id}" style="padding:5px 12px">撤銷</button></td></tr>`).join('')
-    : '<tr><td colspan="11" class="empty">還沒有抽出任何人</td></tr>';
+    : '<tr><td colspan="8" class="empty">還沒有抽出任何人</td></tr>';
 }
 function renderEntries() {
   const q = $('#search').value.trim().toLowerCase();
-  const list = state.entries.filter((e) => (regFilter === 'all' || (regFilter === 'yes') === !!e.registered)
-    && (!q || [e.no, e.name, e.dept, e.className, e.phone, e.email].join(' ').toLowerCase().includes(q)));
-  const reg = state.entries.filter((e) => e.registered).length;
+  const list = state.entries.filter((e) => !q || [e.no, e.name, e.formerName, e.dept, e.studentNo].join(' ').toLowerCase().includes(q)).reverse();
   const won = state.entries.filter((e) => e.won).length;
-  $('#sTotal').textContent = state.entries.length; $('#sReg').textContent = reg;
-  $('#sWon').textContent = won; $('#sLeft').textContent = reg - won;
-  $('#entryRows').innerHTML = list.length ? list.slice(0, 500).map((e) => `<tr>
-    <td class="num">${esc(e.no)}</td><td><b>${esc(e.name)}</b>${e.formerName ? `<span class="muted">（原名 ${esc(e.formerName)}）</span>` : ''}</td>
-    <td>${esc(e.dept) || dash}</td><td class="muted">${esc(e.className) || dash}</td>
-    <td>${esc(e.phone) || dash}</td><td>${esc(e.email) || dash}</td>
-    <td class="muted">${e.idType === 'passport' ? '護照 ' : ''}${esc(e.idMasked)}</td>
-    <td class="muted">${e.registeredAt ? fmt(e.registeredAt) : dash}</td>
-    <td>${e.registered ? '<span class="tag">已登記</span>' : '<span class="tag gray">未登記</span>'}${e.won ? ' <span class="tag">已中獎</span>' : ''}${e.source === 'manual' ? ' <span class="tag gray">後台補登</span>' : ''}</td>
+  $('#sTotal').textContent = state.entries.length; $('#sWon').textContent = won;
+  $('#sLeft').textContent = state.entries.length - won; $('#sRenamed').textContent = state.entries.filter((e) => e.renamed).length;
+  $('#entryRows').innerHTML = list.length ? list.map((e) => `<tr>
+    <td class="num">${esc(e.no)}</td><td><b>${esc(e.name)}</b></td><td>${esc(e.formerName) || '<span class="muted">—</span>'}</td>
+    <td>${esc(e.dept) || '<span class="muted">—</span>'}</td><td>${esc(e.studentNo) || '<span class="muted">—</span>'}</td>
+    <td class="muted">${e.idType === 'passport' ? '護照 ' : ''}${esc(e.idMasked)}</td><td class="muted">${fmt(e.createdAt)}</td>
+    <td>${e.won ? '<span class="tag">已中獎</span>' : '<span class="tag gray">待抽</span>'}${e.addedBy === 'admin' ? ' <span class="tag gray">後台補登</span>' : ''}</td>
     <td style="display:flex;gap:6px"><button class="btn-ghost" data-edit="${e.id}" style="padding:5px 12px">編輯</button><button class="btn-ghost btn-danger" data-del="${e.id}" data-name="${esc(e.name)}" style="padding:5px 12px">刪除</button></td></tr>`).join('')
-    : `<tr><td colspan="10" class="empty">${q ? '找不到符合的校友' : '名單是空的'}</td></tr>`;
-  $('#listNote').textContent = list.length > 500
-    ? '符合 ' + list.length + ' 筆，表格先顯示前 500 筆，請用搜尋縮小範圍。'
-    : '符合 ' + list.length + ' 筆。';
+    : `<tr><td colspan="9" class="empty">${q ? '找不到符合的校友' : '目前還沒有人登記'}</td></tr>`;
 }
 $('#search').addEventListener('input', renderEntries);
-document.querySelectorAll('#regFilter button').forEach((b) => b.addEventListener('click', () => {
-  regFilter = b.dataset.reg;
-  document.querySelectorAll('#regFilter button').forEach((x) => x.classList.toggle('on', x === b));
-  renderEntries();
-}));
 $('#refresh').addEventListener('click', load);
 document.addEventListener('click', async (e) => {
   const edit = e.target.closest('[data-edit]');
@@ -296,17 +271,10 @@ $('#resetWinners').addEventListener('click', async () => {
   if (!confirm('重新抽獎會清空全部 ' + state.winners.length + ' 筆中獎紀錄，' + state.entries.length + ' 位校友全部回到待抽名單，可以從頭抽一次。\n\n確定要重新抽獎嗎？')) return;
   await api('/api/admin/winners/reset', { method: 'POST' }).catch((err) => alert(err.message)); load();
 });
-$('#unregAll').addEventListener('click', async () => {
-  const n = state.entries.filter((e) => e.registered).length;
-  if (!n) return alert('目前沒有人是已登記狀態。');
-  if (!confirm('校友名冊會完整保留，只把目前 ' + n + ' 位「已登記」改回「未登記」，中獎紀錄也會一併清空。'
-    + '\n（活動前清掉測試報到資料時用）\n\n確定要這樣做嗎？')) return;
-  await api('/api/admin/entries/unregister', { method: 'POST' }).catch((err) => alert(err.message)); load();
-});
 $('#clearEntries').addEventListener('click', async () => {
   const n = state.entries.length;
   if (!n) return alert('名單目前是空的。');
-  if (!confirm('確定清空全部 ' + n + ' 筆校友名冊？中獎紀錄也會一併清除，匯入的名冊要重新匯入。\n此動作無法復原，建議先按「匯出 CSV」備份。')) return;
+  if (!confirm('確定清空全部 ' + n + ' 筆登記資料？中獎紀錄也會一併清除。\n此動作無法復原，建議先按「匯出 CSV」備份。')) return;
   if (!confirm('再確認一次：' + n + ' 筆登記資料將永久刪除。')) return;
   await api('/api/admin/entries/reset', { method: 'POST' }).catch((err) => alert(err.message)); load();
 });
@@ -330,9 +298,7 @@ function fillModal(e) {
   $('#mFormerWrap').hidden = !(e && e.renamed);
   $('#mFormerName').value = e ? (e.formerName || '') : '';
   $('#mDept').value = e ? (e.dept || '') : '';
-  $('#mClassName').value = e ? (e.className || '') : '';
-  $('#mPhone').value = e ? (e.phone || '') : '';
-  $('#mEmail').value = e ? (e.email || '') : '';
+  $('#mStudentNo').value = e ? (e.studentNo || '') : '';
   $('#modalErr').hidden = true;
 }
 async function openModal(id) {
@@ -355,9 +321,7 @@ $('#modalSave').addEventListener('click', async () => {
     renamed: $('#mRenamed').checked,
     formerName: $('#mFormerName').value.trim(),
     dept: $('#mDept').value.trim(),
-    className: $('#mClassName').value.trim(),
-    phone: $('#mPhone').value.trim(),
-    email: $('#mEmail').value.trim(),
+    studentNo: $('#mStudentNo').value.trim(),
   };
   const btn = $('#modalSave'); btn.disabled = true; btn.textContent = '儲存中…';
   try {

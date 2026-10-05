@@ -58,13 +58,34 @@
     <div id="err" class="msg err" hidden></div>
     <form id="f" novalidate>
       <div class="field">
-        <label for="idNo"><span id="idLabel" data-t="reg.twid">身分證字號</span><span class="req">*</span></label>
-        <input class="input" id="idNo" name="idNo" autocomplete="off" maxlength="20" data-tp="reg.twidPh" placeholder="例：A123456789" style="text-transform:uppercase">
-        <span class="hint" data-t="reg.idHint">僅作為身分核對使用，不會公開顯示。</span>
+        <span class="label"><span data-t="reg.idType">證件類別</span><span class="req">*</span></span>
+        <div class="seg" role="radiogroup">
+          <button type="button" class="on" data-type="twid" data-t="reg.twid">身分證字號</button>
+          <button type="button" data-type="passport" data-t="reg.passport">護照號碼</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="idNo"><span id="idLabel">身分證字號</span><span class="req">*</span></label>
+        <input class="input" id="idNo" name="idNo" autocomplete="off" maxlength="20" placeholder="例：A123456789" style="text-transform:uppercase">
+        <span class="hint" data-t="reg.idHint">僅作為身分核對與避免重複登記使用，不會公開顯示。</span>
       </div>
       <div class="field">
         <label for="name"><span data-t="reg.name">姓名</span><span class="req">*</span></label>
-        <input class="input" id="name" name="name" autocomplete="name" maxlength="40" data-tp="reg.namePh" placeholder="請填寫姓名">
+        <input class="input" id="name" name="name" autocomplete="name" maxlength="40" data-tp="reg.namePh" placeholder="請填寫目前的姓名">
+        <label class="check" style="margin-top:6px"><input type="checkbox" id="renamed"> <span data-t="reg.renamed">我曾改過姓名</span></label>
+        <div class="field former" id="formerWrap">
+          <label for="formerName"><span data-t="reg.former">改名前姓名（在校時使用的姓名）</span><span class="req">*</span></label>
+          <input class="input" id="formerName" maxlength="40" data-tp="reg.formerPh" placeholder="請填寫改名前的姓名">
+        </div>
+      </div>
+      <div class="field">
+        <label for="dept"><span data-t="reg.dept">系所</span><span class="req">*</span></label>
+        <input class="input" id="dept" maxlength="60" data-tp="reg.deptPh" placeholder="例：新聞學系">
+      </div>
+      <div class="divider" data-t="reg.optional">以下為選填</div>
+      <div class="field">
+        <label for="studentNo"><span data-t="reg.studentNo">學號</span><span class="opt" data-t="reg.optTag">選填</span></label>
+        <input class="input" id="studentNo" maxlength="20" data-tp="reg.studentNoPh" placeholder="例：A10501234">
       </div>
       <button class="btn-gold submit" id="submit" type="submit" data-t="reg.submit">送出登記</button>
       <p class="privacy" data-t="reg.privacy">您提供的個人資料僅用於本次校友抽獎活動之身分核對與得獎聯繫，活動結束後依規定銷毀。</p>
@@ -73,7 +94,7 @@
 
   <section class="card done" id="done" hidden>
     <div class="big-ball ball c-gold"><span>✓</span></div>
-    <h2 id="doneTitle" data-t="reg.doneTitle">登記完成</h2>
+    <h2 data-t="reg.doneTitle">登記完成</h2>
     <p id="doneText"></p>
     <div class="no" id="doneNo"></div>
   </section>
@@ -87,7 +108,7 @@
 <script src="/assets/design.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
-let doneAlready = false; // true = 這位校友先前已登記過
+let idType = 'twid';
 let doneData = { name: '王小明', no: 'A0001' };
 
 function showView(v) {
@@ -97,10 +118,9 @@ function showView(v) {
 }
 function renderDynamic() {
   document.title = T('reg.title');
-  $('#idLabel').textContent = T('reg.twid');
-  $('#idNo').placeholder = T('reg.twidPh');
-  $('#doneTitle').textContent = T(doneAlready ? 'reg.alreadyTitle' : 'reg.doneTitle');
-  $('#doneText').textContent = T(doneAlready ? 'reg.alreadyText' : 'reg.doneText', doneData);
+  $('#idLabel').textContent = T(idType === 'twid' ? 'reg.twid' : 'reg.passport');
+  $('#idNo').placeholder = T(idType === 'twid' ? 'reg.twidPh' : 'reg.passportPh');
+  $('#doneText').textContent = T('reg.doneText', doneData);
   $('#doneNo').textContent = T('reg.doneNo', doneData);
 }
 renderDynamic();
@@ -110,6 +130,18 @@ document.addEventListener('previewview', (e) => showView(e.detail));
 if (!DESIGN_PREVIEW) {
   fetch('/api/status').then(r => r.json()).then(s => { if (!s.open) showView('closed'); }).catch(() => {});
 }
+
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.seg button').forEach(x => x.classList.toggle('on', x === b));
+  idType = b.dataset.type;
+  renderDynamic();
+  $('#idNo').focus();
+}));
+
+$('#renamed').addEventListener('change', (e) => {
+  $('#formerWrap').classList.toggle('show', e.target.checked);
+  if (e.target.checked) $('#formerName').focus();
+});
 
 function showErr(text, field) {
   const box = $('#err');
@@ -124,19 +156,25 @@ $('#f').addEventListener('submit', async (e) => {
   e.preventDefault();
   $('#err').hidden = true;
   const body = {
+    idType,
     idNo: $('#idNo').value.trim().toUpperCase(),
     name: $('#name').value.trim(),
+    renamed: $('#renamed').checked,
+    formerName: $('#formerName').value.trim(),
+    dept: $('#dept').value.trim(),
+    studentNo: $('#studentNo').value.trim(),
   };
   if (DESIGN_PREVIEW) { doneData = { name: body.name || '王小明', no: 'A0001' }; renderDynamic(); return showView('done'); } // 預覽不送出
-  if (!body.idNo) return showErr('請填寫' + T('reg.twid') + '。', 'idNo');
+  if (!body.idNo) return showErr('請填寫' + T(idType === 'twid' ? 'reg.twid' : 'reg.passport') + '。', 'idNo');
   if (!body.name) return showErr('請填寫' + T('reg.name') + '。', 'name');
+  if (body.renamed && !body.formerName) return showErr('勾選曾改名，請填寫改名前的姓名。', 'formerName');
+  if (!body.dept) return showErr('請填寫' + T('reg.dept') + '。', 'dept');
   const btn = $('#submit'); btn.disabled = true; btn.textContent = '送出中…';
   try {
     const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) return showErr(d.error || '送出失敗，請稍後再試。', d.field);
-    doneAlready = !!d.already;
-    doneData = { name: d.name, no: d.no, dept: d.dept || '' };
+    doneData = { name: d.name, no: d.no };
     renderDynamic();
     showView('done');
     window.scrollTo({ top: 0, behavior: 'smooth' });
