@@ -150,6 +150,10 @@
     letter-spacing: var(--dept-spacing, 0.5em); padding-left: var(--dept-spacing, 0.5em);
     text-shadow: 0 6px 30px rgba(0, 0, 0, .55); margin-top: 17px; animation: pop .5s cubic-bezier(.3,1.6,.5,1); }
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
+  /* 中獎者的身分證字號（中間已遮掉），小小地放在揭曉區右下角給本人核對 */
+  .reveal .winner-id { margin-top: var(--winner-id-gap, calc(19 * var(--vh))); text-align: right;
+    font-size: var(--winner-id-size, clamp(26px, calc(1.25 * var(--vw)), 46px));
+    letter-spacing: .22em; font-weight: 700; color: var(--muted); opacity: .85; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
   .reveal .nm { font-size: var(--winner-size); line-height: 1.12; font-weight: 900; font-family: var(--font-display); white-space: nowrap;
     letter-spacing: var(--name-spacing, 0.45em); padding-left: var(--name-spacing, 0.45em);
@@ -359,7 +363,8 @@ document.addEventListener('previewview', (e) => {
     const shown = '王小明';
     $('#result').innerHTML = `<div class="lbl">${esc(T('draw.congrats'))}</div>
       <div class="dept">新聞學系</div>
-      <div class="nm-wrap"><div class="rays"></div><div class="nm done">${[...shown].map((c) => `<span class="ch" style="opacity:1;animation:none">${esc(c)}</span>`).join('')}</div></div>`;
+      <div class="nm-wrap"><div class="rays"></div><div class="nm done">${[...shown].map((c) => `<span class="ch" style="opacity:1;animation:none">${esc(c)}</span>`).join('')}</div></div>
+      <div class="winner-id">A1*****789</div>`;
     $('#trayName').textContent = shown;
     $('#trayName').style.fontSize = 'calc(var(--size) * .062)';
     $('#trayBall').classList.add('show');
@@ -640,24 +645,25 @@ function introBall() {
   el.style.width = el.style.height = size + 'px';
   cv.appendChild(el);
 
-  // 以球心給座標，轉成左上角的位移；rot 讓球看起來一直在滾，sx/sy 做擠壓與拉長
-  const T = (x, y, rot, sx, sy) => `translate(${Math.round(x - size / 2)}px, ${Math.round(y - size / 2)}px) rotate(${rot}deg) scale(${sx}, ${sy})`;
+  // 以球心給座標，轉成左上角的位移；rot 讓球看起來一直在滾。
+  // s 只有整顆等比例縮放（最後混進球堆用），不做擠壓拉長，球始終是正圓
+  const T = (x, y, rot, s = 1) => `translate(${Math.round(x - size / 2)}px, ${Math.round(y - size / 2)}px) rotate(${rot}deg) scale(${s})`;
   const UP = 'cubic-bezier(.3,.62,.7,1)';   // 往上：越接近頂點越慢
   const DOWN = 'cubic-bezier(.3,0,.7,.42)'; // 往下：越接近地面越快
   const takeoff = cw * .33;                              // 起跳點，留在抽獎機左邊
   const apex = Math.max(cy - dW * .75, cv.offsetHeight * .09); // 大跳最高點：夠高但不會飛出畫面
   const frames = [
-    { offset: 0,   transform: T(-size, floor, 0, 1, 1), easing: DOWN },
-    { offset: .10, transform: T(cw * .07, floor - h * .55, 190, .88, 1.14), easing: UP },
-    { offset: .20, transform: T(cw * .13, floor, 310, 1.32, .7), easing: DOWN },
-    { offset: .31, transform: T(cw * .19, floor - h * .9, 480, .86, 1.18), easing: UP },
-    { offset: .41, transform: T(cw * .25, floor, 610, 1.36, .68), easing: DOWN },
-    { offset: .52, transform: T(cw * .29, floor - h * 1.3, 790, .84, 1.22), easing: UP },
-    { offset: .60, transform: T(takeoff, floor, 900, 1.5, .55), easing: 'cubic-bezier(.2,.9,.4,1)' },   // 落地壓扁蓄力
-    { offset: .67, transform: T(takeoff + size * .2, floor - h * .12, 940, .66, 1.5), easing: 'cubic-bezier(.25,0,.5,.55)' }, // 拉長彈起
-    { offset: .86, transform: T((cx + takeoff) / 2, apex, 1260, .95, 1.06), easing: 'cubic-bezier(.5,0,.85,.6)' }, // 飛越到球槽上方
-    { offset: .97, transform: T(cx, cy, 1520, 1.12, .9), opacity: 1, easing: 'ease-out' },              // 砸進球槽
-    { offset: 1,   transform: T(cx, cy, 1540, .28, .28), opacity: 0 },                                  // 混進球堆裡
+    { offset: 0,   transform: T(-size, floor, 0), easing: DOWN },
+    { offset: .10, transform: T(cw * .07, floor - h * .55, 190), easing: UP },
+    { offset: .20, transform: T(cw * .13, floor, 310), easing: DOWN },
+    { offset: .31, transform: T(cw * .19, floor - h * .9, 480), easing: UP },
+    { offset: .41, transform: T(cw * .25, floor, 610), easing: DOWN },
+    { offset: .52, transform: T(cw * .29, floor - h * 1.3, 790), easing: UP },
+    { offset: .60, transform: T(takeoff, floor, 900), easing: 'cubic-bezier(.2,.9,.4,1)' },             // 落地、準備大跳
+    { offset: .67, transform: T(takeoff + size * .2, floor - h * .12, 940), easing: 'cubic-bezier(.25,0,.5,.55)' }, // 彈起
+    { offset: .86, transform: T((cx + takeoff) / 2, apex, 1260), easing: 'cubic-bezier(.5,0,.85,.6)' }, // 飛越到球槽上方
+    { offset: .97, transform: T(cx, cy, 1520), opacity: 1, easing: 'ease-out' },                        // 落進球槽
+    { offset: 1,   transform: T(cx, cy, 1540, .28), opacity: 0 },                                       // 混進球堆裡（等比例縮小）
   ];
   const anim = el.animate(frames, { duration: ms, fill: 'forwards' });
 
@@ -813,6 +819,7 @@ $('#drawBtn').addEventListener('click', async () => {
     await sleep(i === 0 ? surnameDelay : charDelay);
   }
   nm.classList.add('done');
+  if (w.idMasked) $('#result').insertAdjacentHTML('beforeend', `<div class="winner-id">${esc(w.idMasked)}</div>`);
   nameEl.textContent = shown;
   // 中獎球上的字要用「字元數」算（chars 是逐字顯示用的單位，英文一個單字算一個）
   const len = [...shown].length;

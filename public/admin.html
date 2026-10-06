@@ -40,6 +40,10 @@
   .switch input:checked { background: var(--gold); }
   .switch input:checked::after { left: 23px; }
   .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line-soft); }
+  /* 名單分頁欄位多，版面放寬並把班級這種長字串收成一行 */
+  body.wide .wrap { max-width: 1680px; }
+  td.cls { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  td.idno { font-family: ui-monospace, Consolas, monospace; letter-spacing: .04em; }
   table { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 640px; }
   th, td { padding: 11px 14px; text-align: left; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; background: rgba(40,2,6,.45); position: sticky; top: 0; }
@@ -67,7 +71,7 @@
 <header class="topbar">
   <div class="brand"><img class="brand-logo" src="/brand/logo" data-asset="logo" alt="Logo"><span>校友返校日・抽獎後台</span></div>
   <div id="nav" hidden style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <div class="tabs"><button class="on" data-tab="draw">抽獎管理</button><button data-tab="list">名單管理</button><a href="/design" target="_blank">設計 ↗</a></div>
+    <div class="tabs"><button class="on" data-tab="draw">抽獎管理</button><button data-tab="reg">報名名單</button><button data-tab="list">校友名冊</button><a href="/design" target="_blank">設計 ↗</a></div>
     <button class="btn-ghost" id="logout">登出</button>
   </div>
 </header>
@@ -101,7 +105,9 @@
         <label class="switch"><span>投影時遮蔽姓名中間字</span><input type="checkbox" id="maskName"></label>
         <label class="switch"><span>抽獎畫面顯示「全螢幕」按鈕<small>（關閉後仍可按 F 鍵全螢幕、Esc 離開）</small></span><input type="checkbox" id="showFsBtn"></label>
         <label class="switch"><span>開放校友登記</span><input type="checkbox" id="openReg"></label>
+        <label class="switch"><span>查無身分證號也顯示「已完成登記」<small>（不寫入名單、不參加抽獎；姓名不符仍會擋下）</small></span><input type="checkbox" id="lenientPass"></label>
       </div>
+      <p class="sub" id="lenientNote" style="margin:12px 0 0" hidden></p>
       <div class="save-row">
         <span class="hint" id="settingsHint"></span>
         <button class="btn-ghost" id="cancelSettings" hidden>取消變更</button>
@@ -110,6 +116,14 @@
       <div class="field" style="margin:18px 0 0">
         <span class="label">校友登記網址（可轉成 QR Code 給校友掃）</span>
         <div class="link-box"><code id="regUrl"></code><button class="btn-ghost" id="copyUrl">複製</button></div>
+      </div>
+      <div class="field" style="margin:14px 0 0">
+        <span class="label">報名名單網址（報到完成的人，<span id="regCount">—</span>）</span>
+        <div class="link-box"><code id="regListUrl"></code><button class="btn-ghost" id="copyRegUrl">複製</button><a class="btn-ghost" href="/admin?tab=reg" style="text-decoration:none">開啟報名名單 ↗</a></div>
+      </div>
+      <div class="field" style="margin:14px 0 0">
+        <span class="label">校友名冊網址（匯入的完整名冊，<span id="rosterCount">—</span>）</span>
+        <div class="link-box"><code id="listUrl"></code><button class="btn-ghost" id="copyListUrl">複製</button><a class="btn-ghost" href="/admin?tab=list" style="text-decoration:none">開啟名冊 ↗</a></div>
       </div>
     </section>
 
@@ -120,13 +134,42 @@
       </div>
       <p class="sub">抽獎畫面抽出後會自動出現在這裡。撤銷單筆或按「重新抽獎」後，該校友會回到待抽名單，可以重新抽過。</p>
       <div class="table-wrap"><table>
-        <thead><tr><th>#</th><th>獎項</th><th>編號</th><th>姓名</th><th>系所</th><th>班級（名冊原始資料）</th><th>電話</th><th>Email</th><th>證件</th><th>抽出時間</th><th></th></tr></thead>
+        <thead><tr><th>#</th><th>獎項</th><th>編號</th><th>姓名</th><th>身分證字號</th><th>電話</th><th>Email</th><th>系所</th><th>班級（名冊原始資料）</th><th>抽出時間</th><th></th></tr></thead>
         <tbody id="winnerRows"></tbody>
       </table></div>
     </section>
   </div>
 
-  <!-- ===== 名單 ===== -->
+  <!-- ===== 報名名單（只列報到完成的人） ===== -->
+  <div id="tab-reg" hidden>
+    <section class="card panel" style="margin-top:0">
+      <div class="toolbar" style="margin-bottom:6px">
+        <div><h3>報名完成名單</h3></div>
+      </div>
+      <p class="sub">校友在報到頁輸入身分證字號與姓名、核對成功後就會出現在這裡，照報到時間排序。只有這份名單上的人會被抽到。</p>
+      <div class="stats">
+        <div class="stat"><b id="rTotal">0</b><span>報名完成</span></div>
+        <div class="stat"><b id="rWon">0</b><span>已中獎</span></div>
+        <div class="stat"><b id="rLeft">0</b><span>待抽</span></div>
+        <div class="stat"><b id="rLast">—</b><span>最後一筆報到</span></div>
+      </div>
+      <div class="toolbar">
+        <input class="input" id="regSearch" placeholder="搜尋姓名、系所、班級、電話、Email、編號">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn-ghost" id="regRefresh">重新整理</button>
+          <a class="btn-ghost" href="/api/admin/export.csv?only=registered" style="text-decoration:none">匯出報名名單 CSV</a>
+          <button class="btn-ghost btn-danger" id="regClear">清除全部報名紀錄</button>
+        </div>
+      </div>
+      <p class="sub" id="regNote" style="margin:0 0 8px"></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>報到順序</th><th>編號</th><th>姓名</th><th>身分證字號</th><th>電話</th><th>Email</th><th>系所</th><th>班級（名冊原始資料）</th><th>報到時間</th><th>狀態</th><th></th></tr></thead>
+        <tbody id="regRows"></tbody>
+      </table></div>
+    </section>
+  </div>
+
+  <!-- ===== 校友名冊 ===== -->
   <div id="tab-list" hidden>
     <section class="card panel" style="margin-top:0">
       <div class="stats">
@@ -145,14 +188,14 @@
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn-ghost" id="addEntry" style="border-color:var(--gold);color:var(--gold-hi)">＋ 新增校友</button>
           <button class="btn-ghost" id="refresh">重新整理</button>
-          <a class="btn-ghost" href="/api/admin/export.csv" style="text-decoration:none">匯出 CSV（含完整證件號）</a>
-          <button class="btn-ghost" id="unregAll">全部改為未登記</button>
+          <a class="btn-ghost" href="/api/admin/export.csv" style="text-decoration:none">匯出整份名冊 CSV（含完整證件號）</a>
+          <button class="btn-ghost btn-danger" id="unregAll">清除登記紀錄</button>
           <button class="btn-ghost btn-danger" id="clearEntries">清空名單</button>
         </div>
       </div>
       <p class="sub" id="listNote" style="margin:0 0 8px"></p>
       <div class="table-wrap"><table>
-        <thead><tr><th>編號</th><th>姓名</th><th>系所</th><th>班級（名冊原始資料）</th><th>電話</th><th>Email</th><th>證件</th><th>登記時間</th><th>狀態</th><th></th></tr></thead>
+        <thead><tr><th>編號</th><th>姓名</th><th>身分證字號</th><th>電話</th><th>Email</th><th>系所</th><th>班級（名冊原始資料）</th><th>登記時間</th><th>狀態</th><th></th></tr></thead>
         <tbody id="entryRows"></tbody>
       </table></div>
     </section>
@@ -198,6 +241,7 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dash = '<span class="muted">—</span>';
 let regFilter = 'all';
+const fmtFull = (iso) => new Date(iso).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 const fmt = (iso) => new Date(iso).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
 let state = null;
 
@@ -205,7 +249,7 @@ async function api(path, opts = {}) {
   const r = await fetch(path, { ...opts, headers: { 'Content-Type': 'application/json' }, body: opts.body ? JSON.stringify(opts.body) : undefined });
   const d = await r.json().catch(() => ({}));
   if (r.status === 401 && path !== '/api/admin/login') { showLogin(); throw new Error('未登入'); }
-  if (!r.ok) throw new Error(d.error || '操作失敗');
+  if (!r.ok) { const e = new Error(d.error || '操作失敗'); e.data = d; throw e; }
   return d;
 }
 function showLogin() { $('#loginCard').hidden = false; $('#app').hidden = true; $('#nav').hidden = true; }
@@ -226,12 +270,17 @@ $('#loginForm').addEventListener('submit', async (e) => {
 $('#logout').addEventListener('click', async () => { await api('/api/admin/logout', { method: 'POST' }).catch(() => {}); showLogin(); });
 
 // ---------- 分頁 ----------
-document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
-  $('#tab-draw').hidden = b.dataset.tab !== 'draw';
-  $('#tab-list').hidden = b.dataset.tab !== 'list';
-  if (b.dataset.tab === 'list') load();
-}));
+function showTab(name) {
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === name));
+  $('#tab-draw').hidden = name !== 'draw';
+  $('#tab-reg').hidden = name !== 'reg';
+  $('#tab-list').hidden = name !== 'list';
+  document.body.classList.toggle('wide', name !== 'draw');
+  if (name !== 'draw') load();
+}
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
+// 網址帶 ?tab=list（後台名單連結）就直接開在名單分頁
+const wantTab = new URLSearchParams(location.search).get('tab');
 
 async function load() {
   try { state = await api('/api/admin/state'); } catch { return; }
@@ -239,43 +288,81 @@ async function load() {
   if (!settingsDirty) fillSettings();
   $('#regUrl').textContent = location.origin + '/';
   $('#drawUrl').textContent = location.origin + '/draw';
+  $('#listUrl').textContent = location.origin + '/admin?tab=list';
+  $('#regListUrl').textContent = location.origin + '/admin?tab=reg';
+  $('#rosterCount').textContent = state.entries.length + ' 筆';
+  $('#regCount').textContent = state.entries.filter((e) => e.registered).length + ' 人';
+  if ((wantTab === 'list' || wantTab === 'reg') && $('#tab-' + wantTab).hidden) showTab(wantTab);
   renderAll();
 }
 function renderAll() {
-  renderWinners(); renderEntries();
+  renderWinners(); renderRegistered(); renderEntries();
 }
+// 報名完成名單：只列報到過的人，照報到時間由先到後（看得出報到順序）
+function renderRegistered() {
+  const q = $('#regSearch').value.trim().toLowerCase();
+  const all = state.entries.filter((e) => e.registered)
+    .sort((a, b) => String(a.registeredAt).localeCompare(String(b.registeredAt)));
+  const order = new Map(all.map((e, i) => [e.id, i + 1]));
+  const list = all.filter((e) => !q || [e.no, e.name, e.dept, e.className, e.phone, e.email].join(' ').toLowerCase().includes(q));
+  const won = all.filter((e) => e.won).length;
+  $('#rTotal').textContent = all.length;
+  $('#rWon').textContent = won;
+  $('#rLeft').textContent = all.length - won;
+  $('#rLast').textContent = all.length ? fmtFull(all[all.length - 1].registeredAt) : '—';
+  $('#rLast').style.fontSize = '18px';
+  $('#regRows').innerHTML = list.length ? list.slice(-500).reverse().map((e) => `<tr>
+    <td class="num">${order.get(e.id)}</td><td class="num">${esc(e.no)}</td><td><b>${esc(e.name)}</b></td>
+    <td class="idno">${esc(e.idNo || e.idMasked)}</td>
+    <td>${esc(e.phone) || dash}</td><td>${esc(e.email) || dash}</td>
+    <td>${esc(e.dept) || dash}</td><td class="cls muted" title="${esc(e.className)}">${esc(e.className) || dash}</td>
+    <td class="muted">${fmtFull(e.registeredAt)}</td>
+    <td>${e.won ? '<span class="tag">已中獎</span>' : '<span class="tag gray">待抽</span>'}${e.source === 'manual' ? ' <span class="tag gray">後台補登</span>' : ''}</td>
+    <td style="display:flex;gap:6px">${e.won ? '' : `<button class="btn-ghost" data-unreg="${e.id}" data-name="${esc(e.name)}" style="padding:5px 12px">取消報名</button>`}<button class="btn-ghost" data-edit="${e.id}" style="padding:5px 12px">編輯</button></td></tr>`).join('')
+    : `<tr><td colspan="11" class="empty">${q ? '找不到符合的校友' : '還沒有人完成報到'}</td></tr>`;
+  $('#regNote').textContent = list.length > 500
+    ? '符合 ' + list.length + ' 筆，先顯示最近報到的 500 筆，請用搜尋縮小範圍。'
+    : '符合 ' + list.length + ' 筆，最新報到的排在最上面。';
+}
+$('#regSearch').addEventListener('input', renderRegistered);
+$('#regRefresh').addEventListener('click', load);
+$('#regClear').addEventListener('click', () => $('#unregAll').click());
 function renderWinners() {
   const rows = state.winners.slice().reverse();
   $('#winnerRows').innerHTML = rows.length ? rows.map((w, i) => `<tr>
     <td class="num">${rows.length - i}</td><td>${w.prize ? `<span class="tag">${esc(w.prize)}</span>` : dash}</td>
     <td class="num">${esc(w.no)}</td>
     <td><b>${esc(w.name)}</b>${w.formerName ? `<span class="muted">（原名 ${esc(w.formerName)}）</span>` : ''}</td>
-    <td>${esc(w.dept) || dash}</td><td class="muted">${esc(w.className) || dash}</td>
+    <td class="idno">${esc(w.idNo || w.idMasked)}</td>
     <td>${esc(w.phone) || dash}</td><td>${esc(w.email) || dash}</td>
-    <td class="muted">${esc(w.idMasked)}</td><td class="muted">${fmt(w.drawnAt)}</td>
+    <td>${esc(w.dept) || dash}</td><td class="cls muted" title="${esc(w.className)}">${esc(w.className) || dash}</td>
+    <td class="muted">${fmt(w.drawnAt)}</td>
     <td><button class="btn-ghost btn-danger" data-undo="${w.id}" style="padding:5px 12px">撤銷</button></td></tr>`).join('')
     : '<tr><td colspan="11" class="empty">還沒有抽出任何人</td></tr>';
 }
 function renderEntries() {
   const q = $('#search').value.trim().toLowerCase();
   const list = state.entries.filter((e) => (regFilter === 'all' || (regFilter === 'yes') === !!e.registered)
-    && (!q || [e.no, e.name, e.dept, e.className, e.phone, e.email].join(' ').toLowerCase().includes(q)));
+    && (!q || [e.no, e.name, e.dept, e.className, e.phone, e.email].join(' ').toLowerCase().includes(q)))
+    // 已登記的排前面、照報到時間新到舊，方便核對剛剛報到的人
+    .sort((a, b) => (b.registeredAt || '').localeCompare(a.registeredAt || '') || a.no.localeCompare(b.no));
   const reg = state.entries.filter((e) => e.registered).length;
   const won = state.entries.filter((e) => e.won).length;
   $('#sTotal').textContent = state.entries.length; $('#sReg').textContent = reg;
   $('#sWon').textContent = won; $('#sLeft').textContent = reg - won;
   $('#entryRows').innerHTML = list.length ? list.slice(0, 500).map((e) => `<tr>
     <td class="num">${esc(e.no)}</td><td><b>${esc(e.name)}</b>${e.formerName ? `<span class="muted">（原名 ${esc(e.formerName)}）</span>` : ''}</td>
-    <td>${esc(e.dept) || dash}</td><td class="muted">${esc(e.className) || dash}</td>
+    <td class="idno">${e.idType === 'passport' ? '護照 ' : ''}${esc(e.idNo || e.idMasked)}</td>
     <td>${esc(e.phone) || dash}</td><td>${esc(e.email) || dash}</td>
-    <td class="muted">${e.idType === 'passport' ? '護照 ' : ''}${esc(e.idMasked)}</td>
-    <td class="muted">${e.registeredAt ? fmt(e.registeredAt) : dash}</td>
+    <td>${esc(e.dept) || dash}</td><td class="cls muted" title="${esc(e.className)}">${esc(e.className) || dash}</td>
+    <td class="muted">${e.registeredAt ? fmtFull(e.registeredAt) : dash}</td>
     <td>${e.registered ? '<span class="tag">已登記</span>' : '<span class="tag gray">未登記</span>'}${e.won ? ' <span class="tag">已中獎</span>' : ''}${e.source === 'manual' ? ' <span class="tag gray">後台補登</span>' : ''}</td>
-    <td style="display:flex;gap:6px"><button class="btn-ghost" data-edit="${e.id}" style="padding:5px 12px">編輯</button><button class="btn-ghost btn-danger" data-del="${e.id}" data-name="${esc(e.name)}" style="padding:5px 12px">刪除</button></td></tr>`).join('')
+    <td style="display:flex;gap:6px">${e.registered && !e.won ? `<button class="btn-ghost" data-unreg="${e.id}" data-name="${esc(e.name)}" style="padding:5px 12px">取消登記</button>` : ''}<button class="btn-ghost" data-edit="${e.id}" style="padding:5px 12px">編輯</button><button class="btn-ghost btn-danger" data-del="${e.id}" data-name="${esc(e.name)}" style="padding:5px 12px">刪除</button></td></tr>`).join('')
     : `<tr><td colspan="10" class="empty">${q ? '找不到符合的校友' : '名單是空的'}</td></tr>`;
-  $('#listNote').textContent = list.length > 500
-    ? '符合 ' + list.length + ' 筆，表格先顯示前 500 筆，請用搜尋縮小範圍。'
-    : '符合 ' + list.length + ' 筆。';
+  const last = state.entries.filter((e) => e.registeredAt).map((e) => e.registeredAt).sort().pop();
+  $('#listNote').textContent = (list.length > 500
+    ? '符合 ' + list.length + ' 筆，表格先顯示前 500 筆（已登記的排在最前面），請用搜尋縮小範圍。'
+    : '符合 ' + list.length + ' 筆。') + (last ? '　最後一筆報到：' + fmtFull(last) : '');
 }
 $('#search').addEventListener('input', renderEntries);
 document.querySelectorAll('#regFilter button').forEach((b) => b.addEventListener('click', () => {
@@ -287,6 +374,10 @@ $('#refresh').addEventListener('click', load);
 document.addEventListener('click', async (e) => {
   const edit = e.target.closest('[data-edit]');
   if (edit) return openModal(edit.dataset.edit);
+  const unreg = e.target.closest('[data-unreg]');
+  if (unreg && confirm('把「' + unreg.dataset.name + '」改回未登記？\n這個人就不會被抽到，名冊資料會保留，之後可以再報到一次。')) {
+    await api('/api/admin/entries/' + unreg.dataset.unreg + '/unregister', { method: 'POST' }).catch((err) => alert(err.message)); load();
+  }
   const undo = e.target.closest('[data-undo]'), del = e.target.closest('[data-del]');
   if (undo && confirm('確定撤銷這筆中獎紀錄？該校友會回到待抽名單。')) { await api('/api/admin/winners/' + undo.dataset.undo, { method: 'DELETE' }).catch((err) => alert(err.message)); load(); }
   if (del && confirm(`確定刪除「${del.dataset.name}」的登記資料？此動作無法復原。`)) { await api('/api/admin/entries/' + del.dataset.del, { method: 'DELETE' }).catch((err) => alert(err.message)); load(); }
@@ -299,8 +390,9 @@ $('#resetWinners').addEventListener('click', async () => {
 $('#unregAll').addEventListener('click', async () => {
   const n = state.entries.filter((e) => e.registered).length;
   if (!n) return alert('目前沒有人是已登記狀態。');
-  if (!confirm('校友名冊會完整保留，只把目前 ' + n + ' 位「已登記」改回「未登記」，中獎紀錄也會一併清空。'
-    + '\n（活動前清掉測試報到資料時用）\n\n確定要這樣做嗎？')) return;
+  if (!confirm('清除登記紀錄：目前 ' + n + ' 位「已登記」會全部改回「未登記」，登記時間一併清掉，中獎紀錄也會清空。'
+    + '\n校友名冊（' + state.entries.length + ' 筆）完整保留，不會刪掉。'
+    + '\n（活動前清掉測試報到資料時用）\n\n確定要清除嗎？')) return;
   await api('/api/admin/entries/unregister', { method: 'POST' }).catch((err) => alert(err.message)); load();
 });
 $('#clearEntries').addEventListener('click', async () => {
@@ -360,8 +452,16 @@ $('#modalSave').addEventListener('click', async () => {
     email: $('#mEmail').value.trim(),
   };
   const btn = $('#modalSave'); btn.disabled = true; btn.textContent = '儲存中…';
+  const save = () => api(editId ? '/api/admin/entries/' + editId : '/api/admin/entries', { method: editId ? 'PUT' : 'POST', body });
   try {
-    await api(editId ? '/api/admin/entries/' + editId : '/api/admin/entries', { method: editId ? 'PUT' : 'POST', body });
+    try {
+      await save();
+    } catch (err) {
+      // 匯入名冊裡有舊式、外籍等非標準號碼，確認過就照存
+      if (!err.data || !err.data.confirmable || !confirm(err.message + '\n\n如果名冊上本來就是這個號碼，可以直接存起來。要照這樣存嗎？')) throw err;
+      body.idNoConfirmed = true;
+      await save();
+    }
     modal.close(); load();
   } catch (err) {
     const box = $('#modalErr'); box.textContent = err.message; box.hidden = false;
@@ -373,6 +473,11 @@ function fillSettings() {
   $('#prize').value = state.settings.prize || '';
   $('#maskName').checked = state.settings.maskName;
   $('#showFsBtn').checked = !!state.settings.showFsBtn;
+  $('#lenientPass').checked = !!state.settings.lenientPass;
+  const n = state.settings.lenientCount || 0;
+  $('#lenientNote').hidden = !state.settings.lenientPass && !n;
+  $('#lenientNote').innerHTML = '目前已放行 <b>' + n + '</b> 次查無名冊的登記（沒有留下任何資料）。'
+    + (n ? ' <button class="btn-ghost" id="resetLenient" style="padding:3px 10px;margin-left:6px">次數歸零</button>' : '');
   $('#openReg').checked = state.settings.open;
 }
 function markDirty(on) {
@@ -382,13 +487,19 @@ function markDirty(on) {
   $('#settingsHint').textContent = on ? '有尚未儲存的變更' : '';
   $('#settingsHint').style.color = on ? 'var(--gold-hi)' : '';
 }
-['#prize', '#maskName', '#showFsBtn', '#openReg'].forEach((id) => $(id).addEventListener('input', () => markDirty(true)));
-['#maskName', '#showFsBtn', '#openReg'].forEach((id) => $(id).addEventListener('change', () => markDirty(true)));
+['#prize', '#maskName', '#showFsBtn', '#openReg', '#lenientPass'].forEach((id) => $(id).addEventListener('input', () => markDirty(true)));
+['#maskName', '#showFsBtn', '#openReg', '#lenientPass'].forEach((id) => $(id).addEventListener('change', () => markDirty(true)));
+// 放行次數歸零（按鈕是動態畫出來的，用事件委派）
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('#resetLenient')) return;
+  state.settings = (await api('/api/admin/settings', { method: 'POST', body: { resetLenientCount: true } }).catch((err) => { alert(err.message); return { settings: state.settings }; })).settings;
+  fillSettings();
+});
 $('#cancelSettings').addEventListener('click', () => { fillSettings(); markDirty(false); });
 $('#saveSettings').addEventListener('click', async () => {
   const btn = $('#saveSettings'); btn.disabled = true; btn.textContent = '儲存中…';
   try {
-    state.settings = (await api('/api/admin/settings', { method: 'POST', body: { prize: $('#prize').value.trim(), maskName: $('#maskName').checked, showFsBtn: $('#showFsBtn').checked, open: $('#openReg').checked } })).settings;
+    state.settings = (await api('/api/admin/settings', { method: 'POST', body: { prize: $('#prize').value.trim(), maskName: $('#maskName').checked, showFsBtn: $('#showFsBtn').checked, open: $('#openReg').checked, lenientPass: $('#lenientPass').checked } })).settings;
     fillSettings(); markDirty(false);
     $('#settingsHint').textContent = '✓ 已儲存（' + new Date().toLocaleTimeString('zh-TW', { hour12: false }) + '）';
     $('#settingsHint').style.color = 'var(--ok)';
@@ -397,6 +508,8 @@ $('#saveSettings').addEventListener('click', async () => {
 });
 window.addEventListener('beforeunload', (e) => { if (settingsDirty) e.preventDefault(); });
 $('#copyUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#regUrl').textContent); $('#copyUrl').textContent = '已複製'; setTimeout(() => $('#copyUrl').textContent = '複製', 1500); });
+$('#copyListUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#listUrl').textContent); $('#copyListUrl').textContent = '已複製'; setTimeout(() => $('#copyListUrl').textContent = '複製', 1500); });
+$('#copyRegUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#regListUrl').textContent); $('#copyRegUrl').textContent = '已複製'; setTimeout(() => $('#copyRegUrl').textContent = '複製', 1500); });
 // 抽獎畫面抽出的結果自動更新到中獎紀錄
 setInterval(() => { if (!$('#app').hidden && !$('#tab-draw').hidden && document.visibilityState === 'visible') load(); }, 5000);
 

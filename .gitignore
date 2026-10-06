@@ -13,3 +13,7 @@ node_modules/
 *.tmp
 Thumbs.db
 desktop.ini
+
+# 本機備份（改檔前的舊版）
+backups/
+*.bak-*

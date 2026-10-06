@@ -30,16 +30,67 @@ if (!ADMIN_PASSWORD) {
 }
 
 // ---------- 資料 ----------
-const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
+const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false, lenientPass: false, lenientCount: 0 }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
 let db = EMPTY;
 if (fs.existsSync(DB_FILE)) {
   try { const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); db = { ...EMPTY, ...saved, settings: { ...EMPTY.settings, ...saved.settings }, design: { ...EMPTY.design, assets: {}, ...saved.design } }; } catch (e) { console.error('db.json 讀取失敗，另存備份', e); fs.copyFileSync(DB_FILE, DB_FILE + '.broken-' + Date.now()); }
 }
-function save() {
+// 寫檔：整份 db.json 有 1 MB 以上，現場排隊報到時每個人都整份重寫會塞住，
+// 所以把 200 毫秒內的多次變更合併成一次寫入；關掉程式前一定會補寫，資料不會少。
+let saveTimer = null, savePending = false;
+function writeNow() {
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
   fs.renameSync(tmp, DB_FILE);
+  // db.json 已經包含全部內容，日誌可以清掉
+  try { if (fs.existsSync(JOURNAL) && fs.statSync(JOURNAL).size) fs.writeFileSync(JOURNAL, ''); } catch {}
 }
+// save()：後台操作等等要馬上落地，直接寫。
+// save(true)：現場報到用，允許延後 200 毫秒合併寫，期間靠報到日誌保命。
+function save(deferred) {
+  if (!deferred) {
+    savePending = false;
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    return writeNow();
+  }
+  savePending = true;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    if (savePending) { savePending = false; writeNow(); }
+  }, 200);
+}
+// ---------- 報到日誌（斷電／強制關閉的保險） ----------
+// 報到當下只 append 一行（幾十位元組），很快；db.json 寫成功後日誌就清空。
+const JOURNAL = path.join(DATA_DIR, 'checkin-journal.log');
+function journal(entry) {
+  try { fs.appendFileSync(JOURNAL, JSON.stringify(entry) + '\n'); } catch (e) { console.error('報到日誌寫入失敗', e); }
+}
+function replayJournal() {
+  if (!fs.existsSync(JOURNAL)) return;
+  let text = '';
+  try { text = fs.readFileSync(JOURNAL, 'utf8'); } catch { return; }
+  let n = 0;
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      const r = JSON.parse(line);
+      const e = db.entries.find((x) => x.id === r.id);
+      if (e) { if (!e.registered) { Object.assign(e, r); n++; } } else { db.entries.push(r); n++; }
+    } catch {}
+  }
+  if (n) { console.log(`[復原] 從報到日誌補回 ${n} 筆報到紀錄`); writeNow(); }
+  else { try { fs.writeFileSync(JOURNAL, ''); } catch {} }
+}
+function flushSave() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  if (savePending) { savePending = false; try { writeNow(); } catch (e) { console.error('關閉前寫檔失敗', e); } }
+}
+process.on('exit', flushSave);
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK']) {
+  process.on(sig, () => { flushSave(); process.exit(0); });
+}
+replayJournal(); // 上次若被強制關掉，把日誌裡還沒寫進 db.json 的報到補回來
 
 // ---------- 驗證 ----------
 const LETTER_CODE = { A:10,B:11,C:12,D:13,E:14,F:15,G:16,H:17,I:34,J:18,K:19,L:20,M:21,N:22,O:35,P:23,Q:24,R:25,S:26,T:27,U:28,V:29,W:32,X:30,Y:31,Z:33 };
@@ -104,7 +155,7 @@ const clientIp = (req) => req.headers['cf-connecting-ip'] || req.socket.remoteAd
 const publicEntry = (e, winnerSet) => ({
   id: e.id, no: e.no, name: e.name, renamed: e.renamed, formerName: e.formerName,
   dept: e.dept, className: e.className || '', phone: e.phone || '', email: e.email || '',
-  studentNo: e.studentNo, idType: e.idType, idMasked: maskId(e.idNo),
+  studentNo: e.studentNo, idType: e.idType, idNo: e.idNo, idMasked: maskId(e.idNo),
   source: e.source || '', registered: !!e.registered, registeredAt: e.registeredAt || null,
   createdAt: e.createdAt, won: winnerSet.has(e.id),
 });
@@ -121,12 +172,22 @@ function checkIn(b) {
   if (!idNo) return { code: 400, error: '請填寫身分證號。', field: 'idNo' };
   if (!name) return { code: 400, error: '請填寫姓名。', field: 'name' };
   const entry = db.entries.find((e) => e.idNo === idNo);
-  if (!entry) return { code: 404, error: '查無此身分證號，請確認輸入是否正確，或洽現場服務台。', field: 'idNo' };
+  if (!entry) {
+    // 寬鬆登記：名冊查無這個號碼時不擋，前台照樣顯示「已完成登記」，
+    // 但不建立任何資料、不進抽獎池，後台只累加一個不含個資的次數。
+    if (db.settings.lenientPass) {
+      db.settings.lenientCount = (db.settings.lenientCount || 0) + 1;
+      save();
+      return { skipped: true, name };
+    }
+    return { code: 404, error: '查無此身分證號，請確認輸入是否正確，或洽現場服務台。', field: 'idNo' };
+  }
   if (normName(entry.name) !== normName(name)) return { code: 400, error: '姓名有誤，請確認與校友名冊上的姓名一致。', field: 'name' };
   if (entry.registered) return { already: true, entry };
   entry.registered = true;
   entry.registeredAt = new Date().toISOString();
-  save();
+  journal({ id: entry.id, registered: true, registeredAt: entry.registeredAt });
+  save(true);
   return { entry };
 }
 function parseEntry(b, selfId) {
@@ -140,13 +201,20 @@ function parseEntry(b, selfId) {
   const phone = clean(b.phone, 40);
   const email = clean(b.email, 120);
   const studentNo = clean(b.studentNo, 20).toUpperCase();
-  if (idType === 'twid' && !validTwId(idNo)) return { error: '身分證字號格式不正確，請再確認。', field: 'idNo' };
-  if (idType === 'passport' && !/^[A-Z0-9]{5,20}$/.test(idNo)) return { error: '護照號碼格式不正確（5–20 碼英數字）。', field: 'idNo' };
+  // 匯入的名冊裡有舊式、居留證、外籍等非標準號碼，編輯時只要號碼沒動就不檢查格式，
+  // 真的要改成非標準號碼時，前端會再問一次並帶 idNoConfirmed 過來。
+  const self = selfId ? db.entries.find((e) => e.id === selfId) : null;
+  const idUnchanged = !!self && self.idNo === idNo;
+  if (!idNo) return { error: '請填寫證件號碼。', field: 'idNo' };
+  if (!idUnchanged && !b.idNoConfirmed) {
+    if (idType === 'twid' && !validTwId(idNo)) return { error: '身分證字號格式不正確，請再確認。', field: 'idNo', confirmable: true };
+    if (idType === 'passport' && !/^[A-Z0-9]{5,20}$/.test(idNo)) return { error: '護照號碼格式不正確（5–20 碼英數字）。', field: 'idNo', confirmable: true };
+  }
   if (!name) return { error: '請填寫姓名。', field: 'name' };
   if (renamed && !formerName) return { error: '勾選曾改名，請填寫改名前的姓名。', field: 'formerName' };
   if (!dept) return { error: '請填寫系所。', field: 'dept' };
   const dup = db.entries.find((e) => e.idNo === idNo && e.id !== selfId);
-  if (dup) return { code: 409, error: `此證件號碼已於 ${new Date(dup.createdAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })} 完成登記（登記編號 ${dup.no}），每人限登記一次。`, field: 'idNo' };
+  if (dup) return { code: 409, error: `名冊裡已經有這個證件號碼了（編號 ${dup.no}　${dup.name}），不能重複。`, field: 'idNo' };
   return { data: { idType, idNo, name, renamed, formerName, dept, className, phone, email, studentNo } };
 }
 function addEntry(data) {
@@ -271,12 +339,16 @@ async function handle(req, res) {
     return send(res, 200, { title: db.settings.title, open: db.settings.open, count: db.entries.filter((e) => e.registered).length, remaining: remaining().length });
   }
   if (m === 'POST' && p === '/api/register') {
-    // 現場大家共用校內 Wi-Fi 會是同一個對外 IP，上限放寬到每分鐘 150 次才不會擋到排隊報到的人
-    if (limited(clientIp(req), 150)) return send(res, 429, { error: '送出太頻繁，請稍候一分鐘再試。' });
     if (!db.settings.open) return send(res, 403, { error: '本次登記已截止，感謝您的參與。' });
     let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
+    // 現場上千人共用校內 Wi-Fi 會是同一個對外 IP，所以流量限制改用「證號」為單位：
+    // 同一個號碼每分鐘最多試 12 次（擋住猜姓名），不同人之間不會互相影響。
+    // 另外保留一個很寬的整體上限，純粹擋住異常洪水。
+    if (limited('id:' + normId(b.idNo), 12)) return send(res, 429, { error: '這組號碼嘗試太多次，請稍候一分鐘再試，或洽現場服務台。', field: 'idNo' });
+    if (limited('all', 3000)) return send(res, 429, { error: '目前報到人數太多，請稍等幾秒再送出一次。' });
     const v = checkIn(b);
     if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
+    if (v.skipped) return send(res, 200, { ok: true, already: false, no: '', name: v.name, dept: '' });
     return send(res, 200, { ok: true, already: !!v.already, no: v.entry.no, name: v.entry.name, dept: v.entry.dept });
   }
 
@@ -305,7 +377,7 @@ async function handle(req, res) {
       return send(res, 200, {
         settings: db.settings,
         entries: db.entries.map((e) => publicEntry(e, winnerSet)),
-        winners: db.winners,
+        winners: db.winners.map((w) => ({ ...w, idNo: (db.entries.find((e) => e.id === w.entryId) || {}).idNo || '' })),
         remaining: remaining().length,
       });
     }
@@ -353,6 +425,8 @@ async function handle(req, res) {
       if (typeof b.open === 'boolean') db.settings.open = b.open;
       if (typeof b.maskName === 'boolean') db.settings.maskName = b.maskName;
       if (typeof b.showFsBtn === 'boolean') db.settings.showFsBtn = b.showFsBtn;
+      if (typeof b.lenientPass === 'boolean') db.settings.lenientPass = b.lenientPass;
+      if (b.resetLenientCount === true) db.settings.lenientCount = 0;
       if (typeof b.title === 'string' && b.title.trim()) db.settings.title = clean(b.title, 60);
       if (typeof b.prize === 'string') db.settings.prize = clean(b.prize, 30); // 可留空
       save(); return send(res, 200, { ok: true, settings: db.settings });
@@ -376,9 +450,17 @@ async function handle(req, res) {
     if (m === 'POST' && p === '/api/admin/entries') {
       let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
       const v = parseEntry(b);
-      if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
+      if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field, confirmable: v.confirmable });
       const entry = addEntry({ ...v.data, addedBy: 'admin', source: 'manual', registered: true, registeredAt: new Date().toISOString() });
       return send(res, 200, { ok: true, entry: publicEntry(entry, winnerSet) });
+    }
+    if (m === 'POST' && (mm = p.match(/^\/api\/admin\/entries\/([\w-]+)\/unregister$/))) {
+      // 單筆取消登記（報到按錯人時用）；已中獎的要先撤銷中獎紀錄
+      const e = db.entries.find((x) => x.id === mm[1]);
+      if (!e) return send(res, 404, { error: '找不到這筆資料' });
+      if (db.winners.some((w) => w.entryId === e.id)) return send(res, 409, { error: '這位校友已經中獎，請先到「中獎紀錄」撤銷那一筆，再取消登記。' });
+      e.registered = false; e.registeredAt = null; save();
+      return send(res, 200, { ok: true, entry: publicEntry(e, winnerSet) });
     }
     if (m === 'POST' && p === '/api/admin/entries/unregister') {
       // 名冊保留，只把全部人改回「未登記」（活動前清掉測試報到用）
@@ -402,7 +484,7 @@ async function handle(req, res) {
       if (!e) return send(res, 404, { error: '找不到這筆資料' });
       let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
       const v = parseEntry(b, e.id);
-      if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
+      if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field, confirmable: v.confirmable });
       Object.assign(e, v.data, { updatedAt: new Date().toISOString() });
       // 中獎紀錄一併同步，投影畫面與匯出才不會顯示舊資料
       for (const w of db.winners) if (w.entryId === e.id) Object.assign(w, { name: e.name, formerName: e.formerName, dept: e.dept,
@@ -419,15 +501,20 @@ async function handle(req, res) {
       const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
       const winMap = new Map(db.winners.map((w) => [w.entryId, w]));
       const when = (v) => (v ? new Date(v).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '');
+      // ?only=registered 只匯出報名完成的人，照報到時間排序
+      const onlyReg = url.searchParams.get('only') === 'registered';
+      const list = onlyReg
+        ? db.entries.filter((e) => e.registered).sort((a, b) => String(a.registeredAt).localeCompare(String(b.registeredAt)))
+        : db.entries;
       const rows = [['編號', '身分證號', '姓名', '系所', '班級', '電話', 'Email', '是否已登記', '登記時間', '來源', '中獎獎項', '抽出時間']];
-      for (const e of db.entries) {
+      for (const e of list) {
         const w = winMap.get(e.id);
         rows.push([e.no, e.idNo, e.name, e.dept, e.className || '', e.phone || '', e.email || '',
           e.registered ? '已登記' : '', when(e.registeredAt), e.source === 'manual' ? '後台補登' : '匯入名冊',
           w ? w.prize : '', w ? when(w.drawnAt) : '']);
       }
       const csv = '﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n');
-      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent('世新校友抽獎名單.csv'), 'Cache-Control': 'no-store' });
+      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent(onlyReg ? '世新校友抽獎-報名完成名單.csv' : '世新校友抽獎-校友名冊.csv'), 'Cache-Control': 'no-store' });
       return res.end(csv);
     }
     return send(res, 404, { error: 'not found' });
@@ -435,8 +522,31 @@ async function handle(req, res) {
   return send(res, 404, { error: 'not found' });
 }
 
-http.createServer((req, res) => {
+// ---------- 啟動伺服器 ----------
+// 現場可能上千支手機同時送出，這裡把連線佇列開大、加上逾時，
+// 並且確保任何意外都只記錄不結束程式（報到不能中斷）。
+process.on('uncaughtException', (e) => console.error('[未攔截的例外，已忽略繼續服務]', e));
+process.on('unhandledRejection', (e) => console.error('[未處理的 Promise，已忽略繼續服務]', e));
+
+const server = http.createServer((req, res) => {
   handle(req, res).catch((e) => { console.error(e); if (!res.headersSent) send(res, 500, { error: '伺服器錯誤' }); });
-}).listen(PORT, () => {
+});
+server.headersTimeout = 15_000;   // 15 秒還沒把表頭送完就放掉
+server.requestTimeout = 20_000;   // 單一請求最多 20 秒
+server.keepAliveTimeout = 10_000; // 閒置連線 10 秒回收
+server.on('clientError', (err, socket) => {            // 壞掉的連線不要讓程式倒
+  if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
+  socket.destroy();
+});
+// 每 5 分鐘清掉過期的流量計數與登入權杖，活動開一整天也不會越吃越多記憶體
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, arr] of rate) { const live = arr.filter((t) => now - t < 60_000); live.length ? rate.set(k, live) : rate.delete(k); }
+  for (const [t, exp] of sessions) if (exp < now) sessions.delete(t);
+  for (const [t, exp] of designSessions) if (exp < now) designSessions.delete(t);
+}, 300_000).unref();
+
+server.listen(PORT, 2048, () => {  // 2048 = 連線佇列長度，瞬間湧入也排得下
   console.log(`世新校友抽獎：http://localhost:${PORT}  後台 /admin  密碼：${ADMIN_PASSWORD}`);
 });
+

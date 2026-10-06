@@ -31,7 +31,7 @@
   @keyframes drop { from { transform: translateY(-80px) scale(.6); opacity: 0; } }
   .done h2 { margin: 0 0 10px; font-size: 28px; letter-spacing: .12em; font-family: var(--font-display); color: var(--gold-hi); }
   .done p { color: var(--muted); line-height: 1.8; margin: 0; }
-  .done .no { display: inline-block; margin-top: 16px; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line); color: var(--gold-hi); font-weight: 700; letter-spacing: .1em; }
+  .done h2 { margin-bottom: 0; }
   .closed { padding: 44px 28px; text-align: center; }
   .closed h2 { margin: 0 0 10px; }
   .closed p { color: var(--muted); margin: 0; }
@@ -73,9 +73,7 @@
 
   <section class="card done" id="done" hidden>
     <div class="big-ball ball c-gold"><span>✓</span></div>
-    <h2 id="doneTitle" data-t="reg.doneTitle">登記完成</h2>
-    <p id="doneText"></p>
-    <div class="no" id="doneNo"></div>
+    <h2 id="doneTitle" data-t="reg.doneTitle">已完成登記</h2>
   </section>
 
   <section class="card closed" id="closed" hidden>
@@ -100,8 +98,6 @@ function renderDynamic() {
   $('#idLabel').textContent = T('reg.twid');
   $('#idNo').placeholder = T('reg.twidPh');
   $('#doneTitle').textContent = T(doneAlready ? 'reg.alreadyTitle' : 'reg.doneTitle');
-  $('#doneText').textContent = T(doneAlready ? 'reg.alreadyText' : 'reg.doneText', doneData);
-  $('#doneNo').textContent = T('reg.doneNo', doneData);
 }
 renderDynamic();
 document.addEventListener('designchange', renderDynamic);
@@ -119,6 +115,7 @@ function showErr(text, field) {
   box.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 document.querySelectorAll('.input').forEach(i => i.addEventListener('input', () => i.classList.remove('bad')));
+
 
 $('#f').addEventListener('submit', async (e) => {
   e.preventDefault();
