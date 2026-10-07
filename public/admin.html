@@ -130,9 +130,9 @@
     <section class="card panel">
       <div class="toolbar" style="margin-bottom:6px">
         <div><h3>中獎紀錄</h3></div>
-        <button class="btn-ghost" id="resetWinners" style="border-color:var(--gold);color:var(--gold-hi)">↻ 重新抽獎（清空中獎紀錄）</button>
+        <button class="btn-ghost" id="resetWinners" style="border-color:var(--gold);color:var(--gold-hi)">清空中獎紀錄</button>
       </div>
-      <p class="sub">抽獎畫面抽出後會自動出現在這裡。撤銷單筆或按「重新抽獎」後，該校友會回到待抽名單，可以重新抽過。</p>
+      <p class="sub">抽獎畫面抽出後會自動出現在這裡。撤銷單筆或清空中獎紀錄後，該校友會回到待抽名單，可以再抽到。</p>
       <div class="table-wrap"><table>
         <thead><tr><th>#</th><th>獎項</th><th>編號</th><th>姓名</th><th>身分證字號</th><th>電話</th><th>Email</th><th>系所</th><th>班級（名冊原始資料）</th><th>抽出時間</th><th></th></tr></thead>
         <tbody id="winnerRows"></tbody>
@@ -238,6 +238,7 @@
 
 <script>
 const $ = (s) => document.querySelector(s);
+document.body.classList.add('wide'); // 後台一律用寬版面，表格看得到全部欄位
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dash = '<span class="muted">—</span>';
 let regFilter = 'all';
@@ -275,7 +276,7 @@ function showTab(name) {
   $('#tab-draw').hidden = name !== 'draw';
   $('#tab-reg').hidden = name !== 'reg';
   $('#tab-list').hidden = name !== 'list';
-  document.body.classList.toggle('wide', name !== 'draw');
+  document.body.classList.add('wide'); // 三個分頁都用寬版面，表格不用左右拉
   if (name !== 'draw') load();
 }
 document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab)));
@@ -384,7 +385,10 @@ document.addEventListener('click', async (e) => {
 });
 $('#resetWinners').addEventListener('click', async () => {
   if (!state.winners.length) return alert('目前還沒有中獎紀錄。');
-  if (!confirm('重新抽獎會清空全部 ' + state.winners.length + ' 筆中獎紀錄，' + state.entries.length + ' 位校友全部回到待抽名單，可以從頭抽一次。\n\n確定要重新抽獎嗎？')) return;
+  const back = state.entries.filter((e) => e.registered).length;
+  if (!confirm('清空中獎紀錄：目前 ' + state.winners.length + ' 筆中獎紀錄會全部刪除，'
+    + '這些校友會回到待抽名單，' + back + ' 位已報到的校友都可以再被抽到。'
+    + '\n校友名冊與報到狀態不受影響。\n\n確定要清空中獎紀錄嗎？')) return;
   await api('/api/admin/winners/reset', { method: 'POST' }).catch((err) => alert(err.message)); load();
 });
 $('#unregAll').addEventListener('click', async () => {

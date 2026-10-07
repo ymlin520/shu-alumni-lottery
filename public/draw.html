@@ -151,8 +151,9 @@
     text-shadow: 0 6px 30px rgba(0, 0, 0, .55); margin-top: 17px; animation: pop .5s cubic-bezier(.3,1.6,.5,1); }
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
   /* 中獎者的身分證字號（中間已遮掉），小小地放在揭曉區右下角給本人核對 */
-  .reveal .winner-id { margin-top: var(--winner-id-gap, calc(19 * var(--vh))); text-align: right;
-    font-size: var(--winner-id-size, clamp(26px, calc(1.25 * var(--vw)), 46px));
+  /* 數字由設計後台的拉條給，單位在這裡補上 */
+  .reveal .winner-id { margin-top: calc(var(--winner-id-gap, 19) * var(--vh)); text-align: right;
+    font-size: calc(var(--winner-id-size, 92) * 1px);
     letter-spacing: .22em; font-weight: 700; color: var(--muted); opacity: .85; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
   .reveal .nm { font-size: var(--winner-size); line-height: 1.12; font-weight: 900; font-family: var(--font-display); white-space: nowrap;
