@@ -141,18 +141,20 @@
   .reveal { position: absolute; inset: 0; z-index: 25; pointer-events: none; display: flex; justify-content: center; align-items: flex-start;
     padding: var(--reveal-top, calc(14 * var(--vh))) calc(1 * var(--vw)) 0; opacity: 0; transition: opacity .5s; }
   .reveal.show { opacity: 1; }
-  .reveal::before { content: ""; position: absolute; inset: 0; z-index: -1;
+  .reveal::before { display: none; /* 揭曉底色改由舞台層的 .stage-bg 鋪滿整個螢幕，見下方 */
     background: radial-gradient(ellipse 75% 60% at 50% 30%, rgba(20, 0, 2, var(--reveal-backdrop, .84)), rgba(20, 0, 2, calc(var(--reveal-backdrop, .84) * .72)) 55%, rgba(20, 0, 2, calc(var(--reveal-backdrop, .84) * .36))); }
-  .reveal-inner { text-align: center; max-width: 100%; }
+  /* 內容太高（系所很長、版面很扁）時，JS 會整塊等比例縮小，保證不壓到「開始抽獎」按鈕 */
+  .reveal-inner { text-align: center; max-width: 100%; transform-origin: 50% 0; }
   .reveal .lbl { color: var(--text); font-size: clamp(43px, calc(2.3 * var(--vw)), 68px); font-weight: 700; letter-spacing: .35em; text-shadow: 0 4px 21px rgba(0,0,0,.5); }
   /* padding-left 補回 letter-spacing 在最後一個字後面多出來的空隙，字才會真的置中 */
   .reveal .dept { font-family: var(--font-display); font-size: var(--dept-size); font-weight: 900; color: var(--gold-hi);
-    letter-spacing: var(--dept-spacing, 0.5em); padding-left: var(--dept-spacing, 0.5em);
+    letter-spacing: var(--dept-spacing, 0.5em); padding-left: var(--dept-spacing, 0.5em); white-space: nowrap; /* 太長時由 JS 縮字級，不換行 */
     text-shadow: 0 6px 30px rgba(0, 0, 0, .55); margin-top: 17px; animation: pop .5s cubic-bezier(.3,1.6,.5,1); }
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
   /* 中獎者的身分證字號（中間已遮掉），小小地放在揭曉區右下角給本人核對 */
   /* 數字由設計後台的拉條給，單位在這裡補上 */
-  .reveal .winner-id { margin-top: calc(var(--winner-id-gap, 19) * var(--vh)); text-align: right;
+  /* 固定在畫面右下角（離右邊 8%：螢幕比例不同時左右最多被裁 7%，不會切到），高度和「開始抽獎」按鈕差不多 */
+  .reveal .winner-id { position: absolute; right: calc(8 * var(--vw)); bottom: calc(var(--winner-id-gap, 6) * var(--vh)); margin: 0; text-align: right;
     font-size: calc(var(--winner-id-size, 92) * 1px);
     letter-spacing: .22em; font-weight: 700; color: var(--muted); opacity: .85; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
@@ -164,22 +166,42 @@
   .reveal .nm.waiting span:nth-child(2) { animation-delay: .2s; }
   .reveal .nm.waiting span:nth-child(3) { animation-delay: .4s; }
   @keyframes blink { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
-  /* 每個字：金色漸層，從大、模糊、上方重重落下 */
+  /* 每個字：金色漸層，從大、模糊、上方重重砸下來。
+     0.3 秒的 70%（0.21 秒）落地，程式會提早 0.21 秒放字，讓落地剛好踩在音樂的重拍上 */
   .nm .ch { display: inline-block; opacity: 0;
     background: linear-gradient(180deg, #fffbea 0%, var(--gold-hi) 38%, var(--gold) 72%, #fff1c2 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
-    animation: charIn .75s cubic-bezier(.2, 1.35, .35, 1) forwards; }
+    animation: charIn .3s cubic-bezier(.55, 0, .9, .5) forwards; }
   @keyframes charIn {
-    0% { opacity: 0; transform: translateY(-35%) scale(2.6); filter: blur(10px); }
-    60% { opacity: 1; transform: translateY(0) scale(.9); filter: blur(0); }
+    0% { opacity: 0; transform: translateY(-45%) scale(3.2); filter: blur(14px); }
+    70% { opacity: 1; transform: translateY(0) scale(.9); filter: blur(0); }
+    85% { opacity: 1; transform: scale(1.07); filter: none; }
     100% { opacity: 1; transform: none; filter: none; }
   }
+  /* 跟著音樂節拍閃的光、心跳時的暗紅邊框（不透明度由 JS 依節拍播放） */
+  /* 以下幾層放在舞台（整個螢幕）上，不在縮放版面裡，所以版面比例跟螢幕不同時也一樣滿版 */
+  .stage-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .6s;
+    background: radial-gradient(ellipse 70% 80% at 50% 40%, rgba(34, 3, 7, var(--reveal-backdrop, .92)), rgba(6, 0, 1, var(--reveal-backdrop, .92)) 75%); }
+  .stage.revealing .stage-bg { opacity: 1; }
+  .confetti-layer { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+  .canvas { z-index: 2; }
+  .beat-flash, .vignette { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+  .beat-flash { z-index: 27; background: radial-gradient(ellipse 70% 60% at 50% 45%, rgba(255, 228, 160, .55), rgba(255, 190, 90, .18) 50%, transparent 78%); }
+  .vignette { z-index: 26; background: radial-gradient(ellipse 65% 60% at 50% 50%, transparent 45%, rgba(120, 0, 10, .55) 80%, rgba(40, 0, 4, .9)); }
   .reveal .nm.done { animation: glow 1.8s ease-in-out infinite; }
   .machine, .stage h2 { transition: opacity .6s, filter .6s; }
   .stage.revealing .machine, .stage.revealing h2 { opacity: var(--reveal-dim, .22); filter: blur(4px); }
   .draw-btn { position: relative; z-index: 30; }
   /* 揭曉時按鈕移到畫面最下方，不擋住姓名 */
   .stage.revealing .draw-btn { position: absolute; left: 50%; bottom: calc(5 * var(--vh)); transform: translateX(-50%); margin: 0; }
+  /* 超寬 LED 版面（後台「抽獎設定」打勾）：3840x1098，字級改以高度為準，按鈕往上留空間不被切到 */
+  html.wide-stage {
+    --stage-w: 3840px !important; --stage-h: 1098px !important; --machine-vh: 50 !important;
+    --winner-size: min(calc(36 * var(--vh)), calc(16 * var(--vw)), 660px) !important;
+    --dept-size: min(calc(11 * var(--vh)), calc(5 * var(--vw)), 200px) !important;
+    --winner-id-gap: 7 !important;
+  }
+  html.wide-stage .stage.revealing .draw-btn { bottom: calc(6.5 * var(--vh)); }
   .stage.revealing .draw-btn:active { transform: translateX(-50%) translateY(4px); }
   @keyframes glow {
     50% { filter: drop-shadow(0 0 73px rgba(255, 226, 150, 1)) drop-shadow(0 11px 0 rgba(90, 20, 0, .55)); }
@@ -205,8 +227,9 @@
   @keyframes trayGlow { 50% { box-shadow: inset -17px -21px 38px rgba(0,0,0,.25), 0 0 73px rgba(255, 220, 140, .9), 0 0 0 9px rgba(255,255,255,.25); } }
   .tray-ball.waiting span { animation: blink 1s ease-in-out infinite; }
   @keyframes pop { from { transform: scale(.6); } }
-  .confetti { position: absolute; top: -26px; width: 19px; height: 30px; z-index: 20; pointer-events: none; animation: fall linear forwards; }
-  @keyframes fall { to { transform: translateY(calc(110 * var(--vh))) rotate(720deg); opacity: .8; } }
+  /* 彩帶灑在整個螢幕（舞台層），大小跟著版面縮放 */
+  .confetti { position: absolute; top: -40px; width: calc(19px * var(--stage-scale, 1) + 4px); height: calc(30px * var(--stage-scale, 1) + 6px); pointer-events: none; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(calc(100vh + 60px)) rotate(720deg); opacity: .8; } }
   @media (max-width: 760px) { #fsBtn { display: none; } }
 </style>
 </head>
@@ -231,6 +254,8 @@
 </section>
 
 <main class="stage" id="stage" hidden>
+ <div class="stage-bg" aria-hidden="true"></div>
+ <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
  <div class="canvas" id="canvas">
   <h2 data-t="draw.heading">今天的幸運校友是誰？</h2>
   <div class="machine">
@@ -241,11 +266,13 @@
   </div>
   <button class="btn-gold draw-btn" id="drawBtn" title="快捷鍵：空白鍵／Enter／→／PageDown">開始抽獎</button>
   <span hidden data-t="draw.button">開始抽獎</span><span hidden data-t="draw.drawing">抽獎中…</span><span hidden data-t="draw.allDone">全部抽完了</span><span hidden data-t="draw.congrats">恭喜抽中</span><span hidden data-t="draw.former">原名</span>
-  <div class="reveal" id="reveal" aria-live="polite"><div class="reveal-inner" id="result"></div></div>
+  <div class="reveal" id="reveal" aria-live="polite"><div class="reveal-inner" id="result"></div><div class="winner-id" id="winnerId"></div></div>
  </div>
+ <div class="vignette" id="vignette"></div><div class="beat-flash" id="beatFlash"></div>
 </main>
 
 <script src="/assets/design.js"></script>
+<script src="/assets/music.js"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -316,11 +343,13 @@ function fitStage() {
   if (!w || !h || !sw || !sh) return;
   // 版面四周這圈留白可以被裁掉（上下 5%＝跟「恭喜抽中」和按鈕的 5vh 一樣，左右 7%），
   // 只要這圈以內的內容完整看得到就好，這樣 16:9 螢幕幾乎能填滿又不會切到字。
-  // 抓 6%（內容實際只到 5%），多留 1% 當餘裕，免得四捨五入剛好啃到字
-  const safe = Math.min(sw / (w * 0.86), sh / (h * 0.88));
+  // 抓 6%（內容實際只到 5%），多留 1% 當餘裕，免得四捨五入剛好啃到字。
+  // 超寬 LED 版面上下很扁，只允許裁 4%（按鈕離底 6.5vh），按鈕連陰影都不會被切到
+  const wide = document.documentElement.classList.contains('wide-stage');
+  const safe = wide ? Math.min(sw / (w * 0.92), sh / (h * 0.92)) : Math.min(sw / (w * 0.86), sh / (h * 0.88));
   const cover = Math.max(sw / w, sh / h); // 填滿螢幕就夠了，不要再放大（版面尺寸剛好時＝1:1）
   const s = Math.min(safe, cover);
-  if (s > 0) cv.style.setProperty('--stage-scale', s);
+  if (s > 0) { cv.style.setProperty('--stage-scale', s); st.style.setProperty('--stage-scale', s); }
   centerTrayBall();
 }
 // 量出「承接槽的球」要往上移多少才會落在版面正中央，寫進 --tray-ball-dy
@@ -349,7 +378,14 @@ async function load() {
 function render() {
   // 「全螢幕」按鈕預設不顯示，可在後台「抽獎設定」打開（關閉時仍可按 F 鍵全螢幕）
   $('#fsBtn').hidden = !info?.settings?.showFsBtn;
+  // 超寬 LED 版面（3840x1098）由後台勾選；切換後重新量一次版面
+  const wide = !!info?.settings?.wideStage;
+  if (wide !== document.documentElement.classList.contains('wide-stage')) {
+    document.documentElement.classList.toggle('wide-stage', wide);
+    requestAnimationFrame(fitStage);
+  }
   if (!drawing) {
+    applyMusicSettings();
     buildBalls(info.remaining);
     $('#drawBtn').disabled = info.remaining === 0;
     $('#drawBtn').textContent = T(info.remaining === 0 ? 'draw.allDone' : 'draw.button');
@@ -364,130 +400,78 @@ document.addEventListener('previewview', (e) => {
     const shown = '王小明';
     $('#result').innerHTML = `<div class="lbl">${esc(T('draw.congrats'))}</div>
       <div class="dept">新聞學系</div>
-      <div class="nm-wrap"><div class="rays"></div><div class="nm done">${[...shown].map((c) => `<span class="ch" style="opacity:1;animation:none">${esc(c)}</span>`).join('')}</div></div>
-      <div class="winner-id">A1*****789</div>`;
+      <div class="nm-wrap"><div class="rays"></div><div class="nm done">${[...shown].map((c) => `<span class="ch" style="opacity:1;animation:none">${esc(c)}</span>`).join('')}</div></div>`;
+    $('#winnerId').textContent = 'A1*****789';
     $('#trayName').textContent = shown;
     $('#trayName').style.fontSize = 'calc(var(--size) * .062)';
     $('#trayBall').classList.add('show');
     $('#reveal').classList.add('show'); $('#stage').classList.add('revealing');
+    fitReveal(shown);
   } else {
     stopConfetti();
     $('#reveal').classList.remove('show'); $('#stage').classList.remove('revealing');
-    $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = '';
+    $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = ''; $('#winnerId').textContent = '';
   }
 });
 setInterval(() => { if (!DESIGN_PREVIEW && !drawing && !$('#stage').hidden) api('/api/admin/draw-info').then((d) => { info = d; render(); }).catch(() => {}); }, 4000);
 
-// ---------- 音效 ----------
-// 素材只有一個檔（/assets/win-chime.mp3，4 秒、三段上行鈴聲＋尾韻），
-// 用「切片＋變速」從同一個檔延伸出抽獎各階段的聲音：
-//   0.00–0.60s 第一聲、0.75–1.40s 第二聲、1.50–2.20s 第三聲、2.2s 之後是尾韻
-let actx = null, sfxBus = null;
-const SFX_FILES = { chime: '/assets/win-chime.mp3', spin: '/assets/spin-build.mp3' };
-const sfxBuf = {}, sfxReq = {};
+// ---------- 背景音樂與音效（/assets/music.js 即時合成，沒有音檔、沒有版權問題） ----------
+// 音樂從第一次點擊／按鍵開始一直播；抽獎各階段排在拍點上，畫面動作由同一條節拍軸觸發。
+const music = window.LotteryMusic;
 let sfxOn = localStorage.getItem('sfxOff') !== '1';
-function audio() {
-  if (!actx) {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return null;
-    try { actx = new AC(); } catch { return null; }
-    sfxBus = actx.createGain();     // 所有聲音都走這條主匯流排，方便統一控制與量測
-    sfxBus.gain.value = 1;
-    sfxBus.connect(actx.destination);
-  }
-  if (actx.state === 'suspended') actx.resume().catch(() => {});
-  return actx;
-}
-// 全域音高倍率：讓校友場與在校生場用同一組素材也能有不同個性
-function sfxPitch() {
-  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sfx-pitch'));
-  return Number.isFinite(v) && v > 0 ? Math.min(Math.max(v, 0.5), 2) : 1;
-}
 function sfxVol() {
-  if (!sfxOn) return 0;
   const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sfx-volume'));
   return Number.isFinite(v) ? Math.min(Math.max(v, 0), 1) : 0.8;
 }
-function loadSfx(name) {
-  const a = audio();
-  if (!a) return Promise.resolve(null);
-  if (sfxBuf[name]) return Promise.resolve(sfxBuf[name]);
-  if (!sfxReq[name]) {
-    sfxReq[name] = fetch(SFX_FILES[name])
-      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error('載入失敗'))))
-      .then((b) => a.decodeAudioData(b))
-      .then((buf) => (sfxBuf[name] = buf))
-      .catch(() => null);
-  }
-  return sfxReq[name];
+function applyMusicSettings() {
+  music.setVolume(sfxVol());
+  music.setMuted(!sfxOn || DESIGN_PREVIEW); // 設計後台的預覽不出聲
+  // 配樂風格在後台「抽獎設定」選（每 4 秒同步一次）；換風格會改拍速，所以抽獎進行中不換
+  if (!drawing) music.setStyle(info?.settings?.musicStyle || 'edm', cssNum('--music-tempo', 1));
 }
-const loadChime = () => Promise.all(Object.keys(SFX_FILES).map(loadSfx));
-// 從素材裡切一段出來播：offset 起點秒、dur 長度秒（0＝播到底）、rate 音高、vol 音量
-function play(name, { offset = 0, dur = 0, rate = 1, vol = 1, fade = 0.15 } = {}) {
-  const a = audio(), buf = sfxBuf[name], v = vol * sfxVol();
-  if (!a || !buf || v <= 0) return;
-  const len = Math.max(0.02, dur || (buf.duration - offset));
-  const src = a.createBufferSource();
-  src.buffer = buf;
-  rate *= sfxPitch();
-  src.playbackRate.value = rate;
-  const g = a.createGain(), t = a.currentTime, real = len / rate;
-  g.gain.setValueAtTime(v, t);
-  if (real > fade) { // 切片結尾淡出，避免「喀」的爆音
-    g.gain.setValueAtTime(v, t + real - fade);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + real);
-  }
-  src.connect(g).connect(sfxBus || a.destination);
-  try { src.start(t, offset, len); } catch {}
-}
-// win-chime：0.00–0.60 第一聲、0.75–1.40 第二聲、1.50–2.20 第三聲、之後尾韻
-const sfxBounce = () => play('chime', { offset: 0, dur: 0.16, rate: 1.7 + Math.random() * 0.3, vol: 0.4 }); // 開場球落地
-const sfxIntoDrum = () => play('chime', { offset: 1.5, dur: 0.8, rate: 0.85, vol: 0.7 });                   // 跳進抽獎機
-const sfxBallOut = () => play('chime', { offset: 0.75, dur: 0.6, rate: 0.75, vol: 0.35 });                  // 中獎球滾出來
-// 揭曉階段（恭喜抽中／系所／姓名）刻意不配音效，讓畫面安靜收尾
+// 瀏覽器規定要有使用者操作才能出聲：任何點擊或按鍵都順便把音樂打開
+['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if (!$('#stage').hidden) music.unlock(); }, true));
+document.addEventListener('designchange', applyMusicSettings);
 
-// 攪拌中的轉動聲：spin-build 素材 0–3.4 秒是醞釀中的旋轉，3.5 秒是高潮撞擊。
-// 旋轉段取 1.0–3.0 秒（音量最平穩的區段）循環播放，停止攪拌時再放高潮那一下。
-let spinSrc = null, spinGain = null, clackTimer = 0;
-function startRollSound() {
-  stopRollSound(true);
-  const a = audio(), v = sfxVol();
-  if (!a || !sfxBuf.spin || v <= 0 || !mixing) return;
-  const src = a.createBufferSource();
-  src.buffer = sfxBuf.spin;
-  src.loop = true; src.loopStart = 1.0; src.loopEnd = 3.0;
-  src.playbackRate.value = sfxPitch();
-  const g = a.createGain();
-  g.gain.setValueAtTime(0.0001, a.currentTime);
-  src.connect(g).connect(sfxBus);
-  try { src.start(a.currentTime, 0); } catch {}
-  g.gain.linearRampToValueAtTime(0.9 * v, a.currentTime + 0.6);
-  spinSrc = src; spinGain = g;
-  clack();
+// 跟著節拍動的畫面效果。composite: 'add' 疊加在元素原本的動畫上，不會蓋掉原本的位移與晃動
+function pulse(el, k, ms = 260) {
+  if (!el || !el.animate) return;
+  el.animate([{ transform: 'scale(1)' }, { transform: `scale(${k})`, offset: 0.18 }, { transform: 'scale(1)' }],
+    { duration: ms, easing: 'cubic-bezier(.2,.8,.3,1)', composite: 'add' });
 }
-function clack() {
-  if (!mixing) return;
-  // 切得太短、音調拉太高會變成聽不見的「嘶」聲，要留一點長度與實體感
-  play('chime', { offset: 0.015, dur: 0.17, rate: 1.5 + Math.random() * 1.1, vol: 0.4 + Math.random() * 0.22, fade: 0.03 });
-  clackTimer = setTimeout(clack, (90 + Math.random() * 90) / Math.max(simDt, 0.12));
+const flashBeat = (op, ms = 420) => $('#beatFlash').animate([{ opacity: op }, { opacity: 0 }], { duration: ms, easing: 'ease-out' });
+const heartGlow = (op) => $('#vignette').animate([{ opacity: 0 }, { opacity: op, offset: 0.15 }, { opacity: 0 }], { duration: music.beatMs() * 0.95, easing: 'ease-out' });
+function thump(px = 14) { // 整個畫面被重擊震一下
+  $('#stage').animate([{ transform: 'translate(0,0)' }, { transform: `translate(0, ${px}px)`, offset: 0.12 },
+    { transform: `translate(${-px * 0.6}px, ${-px * 0.5}px)`, offset: 0.35 }, { transform: `translate(${px * 0.3}px, ${px * 0.2}px)`, offset: 0.6 },
+    { transform: 'translate(0,0)' }], { duration: 320, easing: 'ease-out' });
 }
-// quiet = true 代表只是重設，不要放高潮那一下
-function stopRollSound(quiet) {
-  if (clackTimer) { clearTimeout(clackTimer); clackTimer = 0; }
-  const a = audio();
-  if (spinSrc && a) {
-    const src = spinSrc, g = spinGain;
-    try {
-      g.gain.cancelScheduledValues(a.currentTime);
-      g.gain.setValueAtTime(g.gain.value, a.currentTime);
-      g.gain.linearRampToValueAtTime(0.0001, a.currentTime + 0.35);
-      src.stop(a.currentTime + 0.45);
-    } catch {}
+let celebrating = false; // 中獎畫面期間：每小節灑花、姓名跟著拍子跳
+music.on('beat', (e) => {
+  const machine = $('.machine'), nmw = $('#result .nm-wrap');
+  if (celebrating) {
+    pulse(nmw, e.pos === 0 ? 1.06 : 1.035, 300);
+    pulse($('#trayBall'), 1.05, 300);
+    if (e.pos === 0 || (e.phase === 'celebrate' && e.pos === 8)) confetti(e.phase === 'celebrate' ? 55 : 35);
+    if (e.phase === 'celebrate' && e.pos === 0) flashBeat(0.22);
+    return;
   }
-  spinSrc = null; spinGain = null;
-  if (!quiet) play('spin', { offset: 3.0, dur: 1.6, vol: 0.95, fade: 0.4 }); // 轉動結束的高潮撞擊
-}
-
+  if (e.phase === 'idle') pulse(machine, 1.012, 380);
+  if (e.phase === 'dept') pulse($('#result .dept'), 1.03 + 0.06 * e.prog, 260);
+});
+music.on('kick', (e) => {
+  const machine = $('.machine');
+  if (e.phase === 'mix') {
+    pulse(machine, 1.035, 240); pulse($('.stage h2'), 1.05, 240); joltBalls();
+    if (e.pos === 0) flashBeat(0.2);
+  } else if (e.phase === 'intro' || e.phase === 'build') {
+    pulse(machine, 1.02, 220); pulse($('.stage h2'), 1.03, 220);
+  } else if (e.phase === 'surname' || e.phase === 'chars' || e.phase === 'dept') {
+    pulse($('#result .nm-wrap'), 1.03, 240);
+  }
+});
+music.on('roll', (e) => pulse($('.machine'), 1.008 + 0.02 * e.prog, 120));
+music.on('heart', () => { heartGlow(0.75); pulse($('.machine'), 1.025, 320); });
 // Q／A：切換到另一場的抽獎畫面（網址在設計後台「抽獎頁」設定）
 async function switchScene() {
   if (drawing) return toast('抽獎進行中，先抽完再切換'); // 防誤觸
@@ -509,8 +493,8 @@ async function switchScene() {
 function toggleSfx() {
   sfxOn = !sfxOn;
   try { localStorage.setItem('sfxOff', sfxOn ? '0' : '1'); } catch {}
-  toast(sfxOn ? '🔊 音效開' : '🔇 音效關');
-  if (sfxOn) { loadChime().then(() => play('chime', { offset: 0, dur: 0.4, rate: 1.3, vol: 0.5 })); }
+  music.setMuted(!sfxOn);
+  toast(sfxOn ? '🔊 音樂開' : '🔇 音樂關');
 }
 let toastTimer = 0;
 function toast(msg) {
@@ -548,6 +532,11 @@ function buildBalls(remaining) {
   const initial = balls.length === 0;
   while (balls.length > n) balls.pop().el.remove();
   while (balls.length < n) balls.push(makeBall(!initial)); // 補的球從上方掉進來
+}
+// 攪拌時每一下大鼓把球往上踢一下，球堆跟著音樂的節奏跳
+function joltBalls(k = 0.018) {
+  const { D } = dims();
+  for (const b of balls) if (!b.picked) { b.vy -= D * k * (0.5 + Math.random()); b.vx += (Math.random() - 0.5) * D * k; }
 }
 let lastD = 0;
 function step() {
@@ -629,11 +618,9 @@ function puff(x, y, size) {
   cv.appendChild(d);
   setTimeout(() => d.remove(), 700);
 }
-function introBall() {
+// ms 由呼叫端依音樂拍速算好（整數小節），三次落地剛好踩在第 2、4、6 拍，跳進抽獎機在下一小節的重拍
+function introBall(ms) {
   const cv = $('#canvas'), machine = $('.machine');
-  // 直接讀，不走 cssNum：要讓後台填 0 真的能關掉（cssNum 遇到 0 會回退成預設值）
-  const raw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--intro-ms'));
-  const ms = Number.isFinite(raw) ? raw : 3400;
   if (!cv || !machine || !drum.offsetWidth || ms < 200) return Promise.resolve();
   const cw = cv.offsetWidth, p = offsetIn(drum, cv), dW = drum.offsetWidth;
   const cx = p.x + dW / 2, cy = p.y + dW / 2;   // 球槽中心
@@ -655,26 +642,26 @@ function introBall() {
   const apex = Math.max(cy - dW * .75, cv.offsetHeight * .09); // 大跳最高點：夠高但不會飛出畫面
   const frames = [
     { offset: 0,   transform: T(-size, floor, 0), easing: DOWN },
-    { offset: .10, transform: T(cw * .07, floor - h * .55, 190), easing: UP },
-    { offset: .20, transform: T(cw * .13, floor, 310), easing: DOWN },
-    { offset: .31, transform: T(cw * .19, floor - h * .9, 480), easing: UP },
-    { offset: .41, transform: T(cw * .25, floor, 610), easing: DOWN },
-    { offset: .52, transform: T(cw * .29, floor - h * 1.3, 790), easing: UP },
-    { offset: .60, transform: T(takeoff, floor, 900), easing: 'cubic-bezier(.2,.9,.4,1)' },             // 落地、準備大跳
-    { offset: .67, transform: T(takeoff + size * .2, floor - h * .12, 940), easing: 'cubic-bezier(.25,0,.5,.55)' }, // 彈起
-    { offset: .86, transform: T((cx + takeoff) / 2, apex, 1260), easing: 'cubic-bezier(.5,0,.85,.6)' }, // 飛越到球槽上方
-    { offset: .97, transform: T(cx, cy, 1520), opacity: 1, easing: 'ease-out' },                        // 落進球槽
+    { offset: .125, transform: T(cw * .07, floor - h * .55, 190), easing: UP },
+    { offset: .25, transform: T(cw * .13, floor, 310), easing: DOWN },
+    { offset: .375, transform: T(cw * .19, floor - h * .9, 480), easing: UP },
+    { offset: .50, transform: T(cw * .25, floor, 610), easing: DOWN },
+    { offset: .625, transform: T(cw * .29, floor - h * 1.3, 790), easing: UP },
+    { offset: .75, transform: T(takeoff, floor, 900), easing: 'cubic-bezier(.2,.9,.4,1)' },             // 落地、準備大跳
+    { offset: .80, transform: T(takeoff + size * .2, floor - h * .12, 940), easing: 'cubic-bezier(.25,0,.5,.55)' }, // 彈起
+    { offset: .92, transform: T((cx + takeoff) / 2, apex, 1260), easing: 'cubic-bezier(.5,0,.85,.6)' }, // 飛越到球槽上方
+    { offset: .99, transform: T(cx, cy, 1520), opacity: 1, easing: 'ease-out' },                        // 落進球槽
     { offset: 1,   transform: T(cx, cy, 1540, .28), opacity: 0 },                                       // 混進球堆裡（等比例縮小）
   ];
   const anim = el.animate(frames, { duration: ms, fill: 'forwards' });
 
-  // 三次落地各噴一圈灰塵
-  [[.20, cw * .13], [.41, cw * .25], [.60, takeoff]].forEach(([t, x]) => {
-    setTimeout(() => { puff(x, floor + size * .4, size); sfxBounce(); }, ms * t);
+  // 三次落地各噴一圈灰塵（聲音由音樂排程在同一拍）
+  [[.25, cw * .13], [.5, cw * .25], [.75, takeoff]].forEach(([t, x]) => {
+    setTimeout(() => { puff(x, floor + size * .4, size); pulse(machine, 1.03, 200); }, ms * t);
   });
   // 跳進去的瞬間整台機器晃一下
-  setTimeout(() => { machine.classList.add('shake'); sfxIntoDrum(); }, ms * .96);
-  setTimeout(() => machine.classList.remove('shake'), ms * .96 + 850);
+  setTimeout(() => { machine.classList.add('shake'); flashBeat(0.35); thump(10); }, ms * .99);
+  setTimeout(() => machine.classList.remove('shake'), ms * .99 + 850);
 
   // 保險：分頁在背景時瀏覽器會暫停動畫，anim.finished 可能永遠不完成，
   // 所以加一個時間上限，時間到就直接收掉，抽獎流程不會卡住。
@@ -705,6 +692,35 @@ const REVEAL_DELAY = 3000; // 系所出現後，等幾毫秒再揭曉姓名
 // 否則 Christopher Anderson 會變成一個字母一個字母出現，要跑十幾秒。
 function splitNameUnits(s) {
   return String(s).match(/[A-Za-z0-9][A-Za-z0-9'’.\-]*\s*|\s+|[\s\S]/g) || [];
+}
+// 系所只顯示一個：雙主修／多個班級（「A／B」）只取第一個
+const firstDept = (d) => String(d || '').split(/[／；;]/)[0].trim();
+// 一段文字（含字距）超過 maxW 就把字級等比例縮到塞得下：系所很長（例如雙主修）時不換行
+function fitTextWidth(el, text, maxW) {
+  el.style.fontSize = '';
+  const probe = document.createElement('span');
+  probe.textContent = text;
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;';
+  el.appendChild(probe);
+  const w = probe.offsetWidth, base = parseFloat(getComputedStyle(el).fontSize) || 0;
+  probe.remove();
+  if (w > maxW && base > 0) el.style.fontSize = Math.floor(base * maxW / w) + 'px';
+}
+// 揭曉內容（恭喜抽中＋系所＋完整姓名＋身分證字號）先整個量一次高度，
+// 超出「開始抽獎」按鈕上緣就整塊等比例縮小；在系所出現時就決定好，之後逐字出現版面不會跳
+function fitReveal(shown) {
+  const cv = $('#canvas'), inner = $('#result'), btn = $('#drawBtn');
+  if (!cv || !inner) return;
+  inner.style.transform = '';
+  const dept = inner.querySelector('.dept');
+  if (dept) fitTextWidth(dept, dept.textContent, cv.offsetWidth * 0.9);
+  const nm = inner.querySelector('.nm');
+  const keep = nm && { html: nm.innerHTML, cls: nm.className };
+  if (nm) { nm.className = 'nm'; nm.textContent = shown; fitNameSize(nm, shown); }
+  const top = offsetIn(inner, cv).y, h = inner.offsetHeight;
+  const avail = offsetIn(btn, cv).y - top - cv.offsetHeight * 0.025;
+  if (nm) { nm.className = keep.cls; nm.innerHTML = keep.html; nm.style.fontSize = nm.style.letterSpacing = nm.style.paddingLeft = ''; }
+  if (h > avail && avail > 0) inner.style.transform = 'scale(' + (avail / h).toFixed(3) + ')';
 }
 // 先量整串姓名的實際寬度，超出畫面就把字級等比例縮到塞得下為止
 function fitNameSize(nm, shown) {
@@ -737,104 +753,150 @@ function confetti(n = 120) {
     c.style.animationDuration = 2.2 + Math.random() * 2 + 's';
     c.style.animationDelay = Math.random() * .5 + 's';
     c.style.borderRadius = Math.random() > .5 ? '50%' : '4px';
-    $('#canvas').appendChild(c);
+    $('#confettiLayer').appendChild(c);
     setTimeout(() => c.remove(), 5000);
   }
 }
-// 中獎畫面期間持續灑花，直到下一輪開始（或回到抽獎前）
-let confettiTimer = 0;
+// 中獎畫面期間持續灑花（跟著音樂每小節一波，見 music.on('beat')），直到下一輪開始
 function startConfetti() {
-  stopConfetti();
-  confetti(120);
-  setTimeout(() => confetti(90), 450);
-  confettiTimer = setInterval(() => confetti(50), cssNum('--confetti-every-ms', 1200));
+  celebrating = true;
+  confetti(140);
+  setTimeout(() => confetti(100), 450);
 }
-function stopConfetti() {
-  if (confettiTimer) { clearInterval(confettiTimer); confettiTimer = 0; }
-}
+function stopConfetti() { celebrating = false; }
 
+// 抽獎流程：每個階段都排在音樂的拍點上（設計後台填的毫秒數會自動對齊到最接近的拍子／小節）
 $('#drawBtn').addEventListener('click', async () => {
   if (drawing) return;
   drawing = true;
   const btn = $('#drawBtn'); btn.disabled = true; btn.textContent = T('draw.drawing');
-  loadChime(); // 使用者按下的這一下才能解鎖瀏覽器的音訊播放
+  music.unlock(); // 使用者按下的這一下才能解鎖瀏覽器的音訊播放
   stopConfetti();
-  $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = '';
+  $('#trayBall').classList.remove('show', 'waiting', 'hit'); $('#result').innerHTML = ''; $('#winnerId').textContent = '';
   $('#reveal').classList.remove('show'); $('#stage').classList.remove('revealing');
   // 攪拌與抽籤同時開始；獎項以後台設定為準
-  // 節奏：前段（--mix-duration）快速翻滾炒氣氛 → 再花 --mix-slowdown 平滑減速 → 球慢慢滾出來
+  // 節奏：開場彈跳 → 前段（--mix-duration）全開律動快速翻滾 → 減速（--mix-slowdown）鼓聲滾奏
+  //      → 中獎球滾出（心跳）→ 系所（重擊＋滾奏）→ 姓（重擊）→ 名字逐字（每字一擊）→ 勝利號角
   const fastDt = Math.min(cssNum('--mix-speed-fast', 1.2), 2);
   const slowDt = Math.min(cssNum('--mix-speed', 0.15), 2);
-  await introBall(); // 開場：球從畫面外彈跳進抽獎機，跳進去才開始攪拌
+  const beatMs = music.beatMs();
+  const beats = (ms, min = 1) => Math.max(min, Math.round(ms / beatMs));            // 對齊到拍
+  const bars = (ms) => Math.max(1, Math.round(ms / beatMs / 4)) * 4;               // 對齊到小節
+  let b = music.nextBeat();
+
+  // 抽籤請求一按下就送出，開場動畫期間伺服器就回來了，後面整段音樂才能一次排好
+  const req = DESIGN_PREVIEW
+    ? Promise.resolve({ winner: { name: '王小明', dept: '新聞學系', formerName: '', prize: info.settings.prize }, remaining: Math.max(info.remaining - 1, 0) })
+    : api('/api/admin/draw', { method: 'POST', body: {} });
+  req.catch(() => {}); // 錯誤留到下面 await 時再處理
+
+  // 開場：球從畫面外彈跳進抽獎機，跳進去才開始攪拌
+  // 直接讀，不走 cssNum：要讓後台填 0 真的能關掉（cssNum 遇到 0 會回退成預設值）
+  // 注意：流程只等「拍子」計時，不等動畫／requestAnimationFrame 的結束，
+  // 瀏覽器節流動畫時才不會讓音樂和畫面脫拍。
+  const introRaw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--intro-ms'));
+  const introMs = Number.isFinite(introRaw) ? introRaw : 3400;
+  let mixB = b;
+  if (introMs >= 200 && drum.offsetWidth) {
+    const n = bars(introMs);
+    mixB = b + n;
+    music.phase('intro', b, n);
+    [0.25, 0.5, 0.75].forEach((f, i) => music.shot(b + n * f, 'bounce', i));
+    music.shot(b + n - 1, 'swell');
+    music.shot(b + n, 'enter');
+    music.phase('mix', mixB);
+    music.waitBeat(b).then(() => introBall(n * beatMs));
+  } else music.phase('mix', mixB);
+  await music.waitBeat(mixB);
   setSpeed(fastDt);
   mixing = true; drum.classList.add('spinning');
-  loadChime().then(startRollSound); // 球開始滾＝滾動聲與碰撞聲
   let res;
-  try {
-    const req = DESIGN_PREVIEW
-      ? Promise.resolve({ winner: { name: '王小明', dept: '新聞學系', formerName: '', prize: info.settings.prize }, remaining: Math.max(info.remaining - 1, 0) })
-      : api('/api/admin/draw', { method: 'POST', body: {} });
-    [res] = await Promise.all([req, sleep(cssNum('--mix-duration', 8000))]);
-    await easeSpeed(fastDt, slowDt, cssNum('--mix-slowdown', 2200));
-  } catch (err) { mixing = false; drum.classList.remove('spinning'); stopRollSound(); alert(err.message); drawing = false; render(); return; }
-  mixing = false; drum.classList.remove('spinning'); stopRollSound();
-  await sleep(200);
-  // 最靠近出口的球掉出去
+  try { res = await req; }
+  catch (err) { mixing = false; drum.classList.remove('spinning'); music.idle(); alert(err.message); drawing = false; render(); return; }
+
+  // 伺服器回來了，把剩下整段音樂一次排好：
+  // 攪拌至少 --mix-duration（回得慢就多轉幾個小節，一定在小節開頭進入減速）→ 減速 → 出球 → 系所 → 姓 → 名字 → 慶祝
+  const w = res.winner, shown = maskName(w.name);
+  const chars = splitNameUnits(shown);
+  const last = chars.length - 1;
+  const mixEnd = Math.max(mixB + bars(cssNum('--mix-duration', 4000)), music.nextBar(mixB));
+  const slowN = bars(cssNum('--mix-slowdown', 3200));
+  const outB = mixEnd + slowN, outN = beats(cssNum('--ball-out-ms', 2600) + 200, 2);
+  const deptB = outB + outN, deptN = beats(cssNum('--reveal-delay', REVEAL_DELAY), 2);
+  const nameB = deptB + deptN;
+  const surN = beats(cssNum('--surname-delay', 3000));   // 姓出現後先停一下，再接著出名字
+  const charN = beats(cssNum('--name-char-delay', 650));  // 名字每個字隔幾拍
+  const beatOf = (i) => (i === 0 ? nameB : nameB + surN + (i - 1) * charN);
+  music.phase('build', mixEnd, slowN);
+  music.phase('out', outB, outN);
+  music.phase('dept', deptB, deptN);
+  if (last >= 1) music.phase('surname', nameB, surN);
+  if (last >= 2) music.phase('chars', beatOf(1), (last - 1) * charN);
+  music.phase('celebrate', beatOf(Math.max(last, 0)), 128, 'idle'); // 慶祝 32 小節後回到待機律動
+  for (let i = 0; i <= last; i++) {
+    music.shot(beatOf(i) - 1, 'swell');
+    music.shot(beatOf(i), i === last ? 'final' : 'slam', i);
+  }
+
+  await music.waitBeat(mixEnd);
+  easeSpeed(fastDt, slowDt, slowN * beatMs - 40); // 不 await，見上面的注意
+  await music.waitBeat(outB);
+  mixing = false; drum.classList.remove('spinning');
+  // 最靠近出口的球掉出去（剛好在重擊的那一拍）
   const { D, R, r } = dims();
-  const live = balls.filter((b) => !b.picked);
-  const pick = live.sort((a, b) => Math.hypot(a.x - R, a.y - D) - Math.hypot(b.x - R, b.y - D))[0];
+  const live = balls.filter((x) => !x.picked);
+  const pick = live.sort((p, q) => Math.hypot(p.x - R, p.y - D) - Math.hypot(q.x - R, q.y - D))[0];
+  thump(12); flashBeat(0.3);
   if (pick) {
     pick.picked = true; pick.el.classList.add('picked');
     requestAnimationFrame(() => { pick.el.style.transform = `translate(${R - r}px, ${D + r}px)`; pick.el.style.opacity = '0'; });
-    sfxBallOut();
-    await sleep(cssNum('--ball-out-ms', 4600) + 200); // 等球慢慢滾出去再揭曉
   }
   // 出獎第一段：畫面中上方先出現「恭喜抽中」與系所（同名時靠系所區分）
-  const w = res.winner, shown = maskName(w.name);
-  const nameEl = $('#trayName'), tray = $('#trayBall');
+  const nameEl = $('#trayName'), tray = $('#trayBall');  await music.waitBeat(deptB);
   // 不顯示「？」球，中獎球滾出來之後直接進揭曉畫面
   $('#result').innerHTML = `<div class="lbl">${esc(T('draw.congrats'))}</div>
-    <div class="dept">${esc(w.dept || T('draw.deptEmpty'))}</div>
+    <div class="dept">${esc(firstDept(w.dept) || T('draw.deptEmpty'))}</div>
     <div class="nm-wrap"><div class="nm waiting"><span>•</span><span>•</span><span>•</span></div></div>`;
   $('#reveal').classList.add('show'); $('#stage').classList.add('revealing');
   centerTrayBall(); // 揭曉時按鈕改成絕對定位、版面會位移，重算一次讓球維持在正中央
-  await sleep(cssNum('--reveal-delay', REVEAL_DELAY));
+  fitReveal(shown); // 系所太長、版面太扁時整塊縮小，不壓到按鈕
+  thump(12); flashBeat(0.35);
 
-  // 第二段：姓名一個字一個字出現（英文以整個單字為單位，不會一個字母一個字母慢慢跑）
-  const chars = splitNameUnits(shown);
+  // 第二段：姓名一個字一個字砸下來，每個字落地都踩在重拍上（英文以整個單字為單位）
+  const SLAM_LEAD = 210; // charIn 動畫 0.21 秒落地，提早這麼多放字
+  await music.waitBeat(nameB, SLAM_LEAD + 30);
   const nm = $('#result .nm');
   nm.classList.remove('waiting');
   nm.innerHTML = '';
   fitNameSize(nm, shown); // 量實際寬度再決定字級，四個字或英文全名都塞得下
   nm.insertAdjacentHTML('beforebegin', '<div class="rays"></div>');
-  const charDelay = cssNum('--name-char-delay', 650);
-  const surnameDelay = cssNum('--surname-delay', 3000); // 姓出現後先停一下，再接著出名字
-  for (let i = 0; i < chars.length; i++) {
-    const c = chars[i];
+  for (let i = 0; i <= last; i++) {
+    await music.waitBeat(beatOf(i), SLAM_LEAD);
     const sp = document.createElement('span');
     sp.className = 'ch';
     // 空白要換成不斷行空白：每個單位是 inline-block，尾端的一般空白會被瀏覽器吃掉
-    sp.textContent = c.replace(/ /g, String.fromCharCode(160));
+    sp.textContent = chars[i].replace(/ /g, String.fromCharCode(160));
     nm.appendChild(sp);
+    await music.waitBeat(beatOf(i));
     const bu = document.createElement('div'); bu.className = 'burst'; nm.before(bu); setTimeout(() => bu.remove(), 1300);
-    await sleep(i === 0 ? surnameDelay : charDelay);
+    thump(i === last ? 22 : 14 + i * 2); flashBeat(i === last ? 0.6 : 0.35);
   }
   nm.classList.add('done');
-  if (w.idMasked) $('#result').insertAdjacentHTML('beforeend', `<div class="winner-id">${esc(w.idMasked)}</div>`);
+  $('#winnerId').textContent = w.idMasked || '';
   nameEl.textContent = shown;
   // 中獎球上的字要用「字元數」算（chars 是逐字顯示用的單位，英文一個單字算一個）
   const len = [...shown].length;
   nameEl.style.fontSize = `calc(var(--size) * ${len <= 3 ? .062 : len <= 5 ? .048 : len <= 10 ? .034 : len <= 16 ? .024 : .018})`;
   tray.classList.remove('waiting', 'show'); void tray.offsetWidth; tray.classList.add('show', 'hit');
   if (w.formerName && !info.settings.maskName) $('#result .nm-wrap').insertAdjacentHTML('afterend', `<div class="meta">（${esc(T('draw.former'))} ${esc(w.formerName)}）</div>`);
-  const fl = document.createElement('div'); fl.className = 'flash'; $('#canvas').appendChild(fl); setTimeout(() => fl.remove(), 800);
+  const fl = document.createElement('div'); fl.className = 'flash'; $('#stage').appendChild(fl); setTimeout(() => fl.remove(), 800);
   startConfetti();
   info.remaining = res.remaining;
   if (pick) { pick.el.remove(); balls = balls.filter((b) => b !== pick); }
   drawing = false;
   render();
 });
-
+applyMusicSettings();
 load();
 </script>
 </body>

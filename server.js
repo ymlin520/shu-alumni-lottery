@@ -7,6 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const DESIGN_SCHEMA = require('./design-defaults.js');
 
 const PORT = Number(process.env.PORT) || 8123;
@@ -30,7 +31,7 @@ if (!ADMIN_PASSWORD) {
 }
 
 // ---------- 資料 ----------
-const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false, lenientPass: false, lenientCount: 0 }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
+const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false, lenientPass: false, lenientCount: 0, musicStyle: 'edm', wideStage: false }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
 let db = EMPTY;
 if (fs.existsSync(DB_FILE)) {
   try { const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); db = { ...EMPTY, ...saved, settings: { ...EMPTY.settings, ...saved.settings }, design: { ...EMPTY.design, assets: {}, ...saved.design } }; } catch (e) { console.error('db.json 讀取失敗，另存備份', e); fs.copyFileSync(DB_FILE, DB_FILE + '.broken-' + Date.now()); }
@@ -109,6 +110,21 @@ const maskId = (id) => id.length <= 4 ? id[0] + '***' : id.slice(0, 2) + '*'.rep
 
 // ---------- 工具 ----------
 const sessions = new Map(); // token -> 到期時間
+// 登入一次 30 天內有效（用了就再延長）；登入狀態存到 data/sessions.json，伺服器重開也不會被登出
+const ADMIN_TTL = 30 * 24 * 3600_000;
+const SESSION_FILE = path.join(DATA_DIR, 'sessions.json');
+try {
+  for (const [t, exp] of Object.entries(JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8')))) if (exp > Date.now()) sessions.set(t, exp);
+} catch {}
+let sessionSaveTimer = null;
+function saveSessions() { // 1 秒內的多次變更合併成一次寫檔
+  if (sessionSaveTimer) return;
+  sessionSaveTimer = setTimeout(() => {
+    sessionSaveTimer = null;
+    try { fs.writeFileSync(SESSION_FILE + '.tmp', JSON.stringify(Object.fromEntries(sessions))); fs.renameSync(SESSION_FILE + '.tmp', SESSION_FILE); }
+    catch (e) { console.error('登入狀態存檔失敗', e); }
+  }, 1000);
+}
 const rate = new Map();     // ip -> [時間戳]
 function limited(ip, max = 20, windowMs = 60_000) {
   const now = Date.now();
@@ -117,9 +133,31 @@ function limited(ip, max = 20, windowMs = 60_000) {
   rate.set(ip, arr);
   return arr.length > max;
 }
+// 回應一律走這裡：文字類（JSON／HTML／JS／CSS／SVG／CSV）超過 1 KB 就 gzip 壓縮，
+// 後台名冊 1 MB 的 JSON 壓完約 150 KB，透過 Cloudflare 臨時網址也很快。
+// etag：頁面與 JS/CSS 加上內容指紋，瀏覽器手上的版本沒變就回 304，不必重新下載。
+// 壓縮用非同步的 zlib.gzip，不會卡住其他人報到。
+const TEXTY = /^(text\/|application\/(json|javascript)|image\/svg)/;
+function reply(res, code, headers, body, etag = false) {
+  const req = res.req;
+  if (!Buffer.isBuffer(body)) body = Buffer.from(String(body));
+  if (etag && code === 200) {
+    const tag = '"' + crypto.createHash('sha1').update(body).digest('base64url') + '"';
+    headers = { ...headers, ETag: tag };
+    if (req && req.headers['if-none-match'] === tag) { res.writeHead(304, headers); return res.end(); }
+  }
+  if (body.length > 1024 && TEXTY.test(headers['Content-Type'] || '') && req && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    return zlib.gzip(body, { level: 6 }, (err, gz) => {
+      if (err) { res.writeHead(code, headers); return res.end(body); }
+      res.writeHead(code, { ...headers, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding' });
+      res.end(gz);
+    });
+  }
+  res.writeHead(code, headers);
+  res.end(body);
+}
 function send(res, code, obj, headers = {}) {
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
-  res.end(JSON.stringify(obj));
+  reply(res, code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers }, JSON.stringify(obj));
 }
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -137,7 +175,8 @@ function isAdmin(req) {
   const t = cookie(req, 'sid');
   const exp = t && sessions.get(t);
   if (!exp || exp < Date.now()) return false;
-  sessions.set(t, Date.now() + 12 * 3600_000);
+  sessions.set(t, Date.now() + ADMIN_TTL);
+  saveSessions();
   return true;
 }
 // 設計後台獨立登入：就算已登入後台，進 /design 也要再輸入密碼；2 小時後失效，不會自動延長
@@ -281,8 +320,7 @@ function sniffImage(b) {
 function serveFile(res, file, extraHeaders = {}) {
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('找不到圖片'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', ...extraHeaders });
-    res.end(buf);
+    reply(res, 200, { 'Content-Type': MIME[path.extname(file).toLowerCase()] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', ...extraHeaders }, buf, true);
   });
 }
 // 上傳的 SVG 可能夾帶程式碼，一律用沙盒 CSP 送出，直接開網址也不會執行
@@ -313,8 +351,7 @@ function serveStatic(req, res, file) {
   fs.readFile(p, (err, buf) => {
     if (err) { res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('找不到頁面'); }
     if (file === 'index.html' || file === 'draw.html') buf = Buffer.from(buf.toString('utf8').replace('</head>', designHead() + '</head>'));
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
-    res.end(buf);
+    reply(res, 200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' }, buf, true);
   });
 }
 
@@ -363,8 +400,8 @@ async function handle(req, res) {
       designSessions.set(t, Date.now() + DESIGN_TTL);
       return send(res, 200, { ok: true }, { 'Set-Cookie': `dsid=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${DESIGN_TTL / 1000}` });
     }
-    sessions.set(t, Date.now() + 12 * 3600_000);
-    return send(res, 200, { ok: true }, { 'Set-Cookie': `sid=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=43200` });
+    sessions.set(t, Date.now() + ADMIN_TTL); saveSessions();
+    return send(res, 200, { ok: true }, { 'Set-Cookie': `sid=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${ADMIN_TTL / 1000}` });
   }
   if (p.startsWith('/api/admin/')) {
     // 設計相關 API 只認設計後台的登入；其他後台 API 只認後台登入
@@ -372,7 +409,7 @@ async function handle(req, res) {
     if (m === 'POST' && p === '/api/admin/design-logout') { designSessions.delete(cookie(req, 'dsid')); return send(res, 200, { ok: true }, { 'Set-Cookie': 'dsid=; Path=/; Max-Age=0' }); }
     const winnerSet = new Set(db.winners.map((w) => w.entryId));
 
-    if (m === 'POST' && p === '/api/admin/logout') { sessions.delete(cookie(req, 'sid')); return send(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; Path=/; Max-Age=0' }); }
+    if (m === 'POST' && p === '/api/admin/logout') { sessions.delete(cookie(req, 'sid')); saveSessions(); return send(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; Path=/; Max-Age=0' }); }
     if (m === 'GET' && p === '/api/admin/state') {
       return send(res, 200, {
         settings: db.settings,
@@ -426,6 +463,8 @@ async function handle(req, res) {
       if (typeof b.maskName === 'boolean') db.settings.maskName = b.maskName;
       if (typeof b.showFsBtn === 'boolean') db.settings.showFsBtn = b.showFsBtn;
       if (typeof b.lenientPass === 'boolean') db.settings.lenientPass = b.lenientPass;
+      if (typeof b.wideStage === 'boolean') db.settings.wideStage = b.wideStage; // 抽獎畫面 3840x1098 超寬 LED 版面
+      if (['edm', 'drums', 'rock'].includes(b.musicStyle)) db.settings.musicStyle = b.musicStyle; // 抽獎配樂風格
       if (b.resetLenientCount === true) db.settings.lenientCount = 0;
       if (typeof b.title === 'string' && b.title.trim()) db.settings.title = clean(b.title, 60);
       if (typeof b.prize === 'string') db.settings.prize = clean(b.prize, 30); // 可留空
@@ -514,8 +553,7 @@ async function handle(req, res) {
           w ? w.prize : '', w ? when(w.drawnAt) : '']);
       }
       const csv = '﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n');
-      res.writeHead(200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent(onlyReg ? '世新校友抽獎-報名完成名單.csv' : '世新校友抽獎-校友名冊.csv'), 'Cache-Control': 'no-store' });
-      return res.end(csv);
+      return reply(res, 200, { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent(onlyReg ? '世新校友抽獎-報名完成名單.csv' : '世新校友抽獎-校友名冊.csv'), 'Cache-Control': 'no-store' }, csv);
     }
     return send(res, 404, { error: 'not found' });
   }
@@ -542,7 +580,7 @@ server.on('clientError', (err, socket) => {            // 壞掉的連線不要�
 setInterval(() => {
   const now = Date.now();
   for (const [k, arr] of rate) { const live = arr.filter((t) => now - t < 60_000); live.length ? rate.set(k, live) : rate.delete(k); }
-  for (const [t, exp] of sessions) if (exp < now) sessions.delete(t);
+  for (const [t, exp] of sessions) if (exp < now) { sessions.delete(t); saveSessions(); }
   for (const [t, exp] of designSessions) if (exp < now) designSessions.delete(t);
 }, 300_000).unref();
 
