@@ -17,3 +17,6 @@ desktop.ini
 # 本機備份（改檔前的舊版）
 backups/
 *.bak-*
+
+# 中獎紀錄頁密碼
+winners-password.txt

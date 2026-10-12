@@ -39,6 +39,11 @@
   .switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .2s; }
   .switch input:checked { background: var(--gold); }
   .switch input:checked::after { left: 23px; }
+  .switch.stage-size { flex-wrap: wrap; }
+  .switch.stage-size > label { flex: 1; cursor: pointer; }
+  .switch .size-row { flex-basis: 100%; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .switch .size-row .input { width: 96px; height: auto; padding: 6px 10px; appearance: auto; background: rgba(0,0,0,.25); border-radius: 8px; flex: none; cursor: text; }
+  .switch .size-row .input::after { content: none; }
   .table-wrap { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line-soft); }
   /* 名單分頁欄位多，版面放寬並把班級這種長字串收成一行 */
   body.wide .wrap { max-width: 1680px; }
@@ -82,7 +87,7 @@
 <header class="topbar">
   <div class="brand"><img class="brand-logo" src="/brand/logo" data-asset="logo" alt="Logo"><span>校友返校日・抽獎後台</span></div>
   <div id="nav" hidden style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <div class="tabs"><button class="on" data-tab="draw">抽獎管理</button><button data-tab="reg">報名名單</button><button data-tab="list">校友名冊</button><a href="/design" target="_blank">設計 ↗</a></div>
+    <div class="tabs"><button class="on" data-tab="draw">抽獎管理</button><button data-tab="reg">報名名單</button><button data-tab="list">校友名冊</button><a href="/winners" target="_blank">中獎紀錄 ↗</a><a href="/design" target="_blank">設計 ↗</a></div>
     <button class="btn-ghost" id="logout">登出</button>
   </div>
 </header>
@@ -116,7 +121,8 @@
         <label class="switch"><span>投影時遮蔽姓名中間字</span><input type="checkbox" id="maskName"></label>
         <label class="switch"><span>抽獎畫面顯示「全螢幕」按鈕<small>（關閉後仍可按 F 鍵全螢幕、Esc 離開）</small></span><input type="checkbox" id="showFsBtn"></label>
         <label class="switch"><span>開放校友登記</span><input type="checkbox" id="openReg"></label>
-        <label class="switch"><span>抽獎畫面使用 3840×1098 超寬 LED 版面<small>（打勾後版面改成超寬比例、字級依高度調整；不勾就是原本的版面）</small></span><input type="checkbox" id="wideStage"></label>
+        <div class="switch stage-size"><label for="wideStage"><span>抽獎畫面使用自訂 LED 版面尺寸<small>（打勾後版面改成下方的寬×高比例、字級依高度調整；不勾就是原本的版面）</small></span></label><input type="checkbox" id="wideStage">
+          <div class="size-row">寬 <input class="input" id="stageW" type="number" min="320" max="10000" step="1" inputmode="numeric"> × 高 <input class="input" id="stageH" type="number" min="200" max="10000" step="1" inputmode="numeric"> px</div></div>
         <label class="switch"><span>查無身分證號也顯示「已完成登記」<small>（不寫入名單、不參加抽獎；姓名不符仍會擋下）</small></span><input type="checkbox" id="lenientPass"></label>
       </div>
       <p class="sub" id="lenientNote" style="margin:12px 0 0" hidden></p>
@@ -153,6 +159,10 @@
       <div class="field" style="margin:14px 0 0">
         <span class="label">校友名冊網址（匯入的完整名冊，<span id="rosterCount">—</span>）</span>
         <div class="link-box"><code id="listUrl"></code><button class="btn-ghost" id="copyListUrl">複製</button><a class="btn-ghost" href="/admin?tab=list" style="text-decoration:none">開啟名冊 ↗</a></div>
+      </div>
+      <div class="field" style="margin:14px 0 0">
+        <span class="label">中獎紀錄網址（獨立頁面、只能看不能改，用中獎紀錄頁自己的密碼登入；<span id="winCount">—</span>）</span>
+        <div class="link-box"><code id="winListUrl"></code><button class="btn-ghost" id="copyWinUrl">複製</button><a class="btn-ghost" href="/winners" target="_blank" style="text-decoration:none">開啟中獎紀錄 ↗</a></div>
       </div>
     </section>
 
@@ -320,6 +330,8 @@ async function load() {
   $('#drawUrl').textContent = location.origin + '/draw';
   $('#listUrl').textContent = location.origin + '/admin?tab=list';
   $('#regListUrl').textContent = location.origin + '/admin?tab=reg';
+  $('#winListUrl').textContent = location.origin + '/winners';
+  $('#winCount').textContent = state.winners.length + ' 筆';
   $('#rosterCount').textContent = state.entries.length + ' 筆';
   $('#regCount').textContent = state.entries.filter((e) => e.registered).length + ' 人';
   if ((wantTab === 'list' || wantTab === 'reg') && $('#tab-' + wantTab).hidden) showTab(wantTab);
@@ -507,6 +519,8 @@ function fillSettings() {
   $('#maskName').checked = state.settings.maskName;
   $('#showFsBtn').checked = !!state.settings.showFsBtn;
   $('#wideStage').checked = !!state.settings.wideStage;
+  $('#stageW').value = state.settings.stageW || 3840;
+  $('#stageH').value = state.settings.stageH || 1098;
   $('#lenientPass').checked = !!state.settings.lenientPass;
   const n = state.settings.lenientCount || 0;
   $('#lenientNote').hidden = !state.settings.lenientPass && !n;
@@ -523,7 +537,7 @@ function markDirty(on) {
   $('#settingsHint').textContent = on ? '有尚未儲存的變更' : '';
   $('#settingsHint').style.color = on ? 'var(--gold-hi)' : '';
 }
-['#prize', '#maskName', '#showFsBtn', '#wideStage', '#openReg', '#lenientPass'].forEach((id) => $(id).addEventListener('input', () => markDirty(true)));
+['#prize', '#maskName', '#showFsBtn', '#wideStage', '#stageW', '#stageH', '#openReg', '#lenientPass'].forEach((id) => $(id).addEventListener('input', () => markDirty(true)));
 ['#maskName', '#showFsBtn', '#wideStage', '#openReg', '#lenientPass'].forEach((id) => $(id).addEventListener('change', () => markDirty(true)));
 document.querySelectorAll('input[name=musicStyle]').forEach((el) => el.addEventListener('change', () => markDirty(true)));
 // 試聽：用抽獎畫面同一套配樂引擎（/assets/music.js）播一段；再按一次停止
@@ -551,7 +565,7 @@ $('#cancelSettings').addEventListener('click', () => { fillSettings(); markDirty
 $('#saveSettings').addEventListener('click', async () => {
   const btn = $('#saveSettings'); btn.disabled = true; btn.textContent = '儲存中…';
   try {
-    state.settings = (await api('/api/admin/settings', { method: 'POST', body: { prize: $('#prize').value.trim(), maskName: $('#maskName').checked, showFsBtn: $('#showFsBtn').checked, wideStage: $('#wideStage').checked, open: $('#openReg').checked, lenientPass: $('#lenientPass').checked, musicStyle: document.querySelector('input[name=musicStyle]:checked')?.value } })).settings;
+    state.settings = (await api('/api/admin/settings', { method: 'POST', body: { prize: $('#prize').value.trim(), maskName: $('#maskName').checked, showFsBtn: $('#showFsBtn').checked, wideStage: $('#wideStage').checked, stageW: +$('#stageW').value, stageH: +$('#stageH').value,open: $('#openReg').checked, lenientPass: $('#lenientPass').checked, musicStyle: document.querySelector('input[name=musicStyle]:checked')?.value } })).settings;
     fillSettings(); markDirty(false);
     $('#settingsHint').textContent = '✓ 已儲存（' + new Date().toLocaleTimeString('zh-TW', { hour12: false }) + '）';
     $('#settingsHint').style.color = 'var(--ok)';
@@ -562,8 +576,9 @@ window.addEventListener('beforeunload', (e) => { if (settingsDirty) e.preventDef
 $('#copyUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#regUrl').textContent); $('#copyUrl').textContent = '已複製'; setTimeout(() => $('#copyUrl').textContent = '複製', 1500); });
 $('#copyListUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#listUrl').textContent); $('#copyListUrl').textContent = '已複製'; setTimeout(() => $('#copyListUrl').textContent = '複製', 1500); });
 $('#copyRegUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#regListUrl').textContent); $('#copyRegUrl').textContent = '已複製'; setTimeout(() => $('#copyRegUrl').textContent = '複製', 1500); });
+$('#copyWinUrl').addEventListener('click', () => { navigator.clipboard?.writeText($('#winListUrl').textContent); $('#copyWinUrl').textContent = '已複製'; setTimeout(() => $('#copyWinUrl').textContent = '複製', 1500); });
 // 抽獎畫面抽出的結果自動更新到中獎紀錄
-setInterval(() => { if (!$('#app').hidden && !$('#tab-draw').hidden && document.visibilityState === 'visible') load(); }, 5000);
+setInterval(() => { if (!$('#app').hidden && !$('#tab-draw').hidden &&document.visibilityState === 'visible') load(); }, 5000);
 
 load();
 </script>

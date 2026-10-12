@@ -194,7 +194,7 @@
   .draw-btn { position: relative; z-index: 30; }
   /* 揭曉時按鈕移到畫面最下方，不擋住姓名 */
   .stage.revealing .draw-btn { position: absolute; left: 50%; bottom: calc(5 * var(--vh)); transform: translateX(-50%); margin: 0; }
-  /* 超寬 LED 版面（後台「抽獎設定」打勾）：3840x1098，字級改以高度為準，按鈕往上留空間不被切到 */
+  /* 超寬 LED 版面（後台「抽獎設定」打勾）：寬高由後台設定（預設 3840x1098，JS 會覆寫 --stage-w/h），字級改以高度為準，按鈕往上留空間不被切到 */
   html.wide-stage {
     --stage-w: 3840px !important; --stage-h: 1098px !important; --machine-vh: 50 !important;
     --winner-size: min(calc(36 * var(--vh)), calc(16 * var(--vw)), 660px) !important;
@@ -372,16 +372,22 @@ async function load() {
   if (DESIGN_PREVIEW) info = { settings: { prize: '頭獎', maskName: false }, remaining: 30 };
   else try { info = await api('/api/admin/draw-info'); } catch { return; }
   $('#stage').hidden = false; $('#actions').hidden = false;
+  tryAutoplay();
   fitStage();
   render();
 }
 function render() {
   // 「全螢幕」按鈕預設不顯示，可在後台「抽獎設定」打開（關閉時仍可按 F 鍵全螢幕）
   $('#fsBtn').hidden = !info?.settings?.showFsBtn;
-  // 超寬 LED 版面（3840x1098）由後台勾選；切換後重新量一次版面
+  // 超寬 LED 版面由後台勾選，寬高也在後台設定（預設 3840x1098）；切換或改尺寸後重新量一次版面
+  const root = document.documentElement;
   const wide = !!info?.settings?.wideStage;
-  if (wide !== document.documentElement.classList.contains('wide-stage')) {
-    document.documentElement.classList.toggle('wide-stage', wide);
+  const sw = (info?.settings?.stageW || 3840) + 'px', sh = (info?.settings?.stageH || 1098) + 'px';
+  const sizeChanged = wide && (root.style.getPropertyValue('--stage-w') !== sw || root.style.getPropertyValue('--stage-h') !== sh);
+  if (wide) { root.style.setProperty('--stage-w', sw, 'important'); root.style.setProperty('--stage-h', sh, 'important'); }
+  else { root.style.removeProperty('--stage-w'); root.style.removeProperty('--stage-h'); }
+  if (wide !== root.classList.contains('wide-stage') || sizeChanged) {
+    root.classList.toggle('wide-stage', wide);
     requestAnimationFrame(fitStage);
   }
   if (!drawing) {
@@ -430,7 +436,7 @@ function applyMusicSettings() {
   if (!drawing) music.setStyle(info?.settings?.musicStyle || 'edm', cssNum('--music-tempo', 1));
 }
 // 瀏覽器規定要有使用者操作才能出聲：任何點擊或按鍵都順便把音樂打開
-['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if (!$('#stage').hidden) music.unlock(); }, true));
+['pointerdown', 'keydown'].forEach((ev) => document.addEventListener(ev, () => { if (!$('#stage').hidden) { if (music.blocked) $('#toast')?.classList.remove('show'); music.unlock(); } }, true));
 document.addEventListener('designchange', applyMusicSettings);
 
 // 跟著節拍動的畫面效果。composite: 'add' 疊加在元素原本的動畫上，不會蓋掉原本的位移與晃動
@@ -476,9 +482,9 @@ music.on('heart', () => { heartGlow(0.75); pulse($('.machine'), 1.025, 320); });
 async function switchScene() {
   if (drawing) return toast('抽獎進行中，先抽完再切換'); // 防誤觸
   let url = (window.T ? T('draw.switchUrl') : '').trim();
-  // 現在不是用本機位址在看（例如用 Cloudflare 臨時網址投影），就改切到對方「目前」的臨時網址。
-  // 臨時網址每次重開都會變，所以跟伺服器要即時的，不用手動維護。
-  if (!/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname)) {
+  // 用 Cloudflare 臨時網址投影時，改切到對方「目前」的臨時網址（每次重開都會變，跟伺服器要即時的）。
+  // 正式網址（shu.edu.tw）或本機就直接用設計後台設定的網址。
+  if (/\.trycloudflare\.com$/.test(location.hostname)) {
     try {
       const d = await fetch('/api/admin/switch-url').then((r) => r.json());
       if (d && d.url) url = d.url;
@@ -497,13 +503,20 @@ function toggleSfx() {
   toast(sfxOn ? '🔊 音樂開' : '🔇 音樂關');
 }
 let toastTimer = 0;
-function toast(msg) {
+function toast(msg, ms = 1400) {
   let el = $('#toast');
   if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 1400);
+  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+}
+// 網頁一打開就試著放音樂：投影電腦的瀏覽器允許自動播放就直接有聲音；
+// 被擋下的話提示點一下或按任意鍵（第一次互動時 music.unlock() 會把聲音打開）
+function tryAutoplay() {
+  if (DESIGN_PREVIEW || !sfxOn) return;
+  music.unlock();
+  setTimeout(() => { if (music.blocked && sfxOn) toast('🔈 點一下畫面或按任意鍵開啟音樂', 8000); }, 800);
 }
 
 // ---------- 彩球物理 ----------

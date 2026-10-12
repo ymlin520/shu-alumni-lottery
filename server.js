@@ -29,9 +29,19 @@ if (!ADMIN_PASSWORD) {
     fs.writeFileSync(PW_FILE, ADMIN_PASSWORD + '\n');
   }
 }
+// 中獎紀錄頁（/winners）用自己的密碼，只能看中獎名單、進不了後台
+const WIN_PW_FILE = path.join(ROOT, 'winners-password.txt');
+let WINNERS_PASSWORD = process.env.WINNERS_PASSWORD;
+if (!WINNERS_PASSWORD) {
+  if (fs.existsSync(WIN_PW_FILE)) WINNERS_PASSWORD = fs.readFileSync(WIN_PW_FILE, 'utf8').trim();
+  else {
+    WINNERS_PASSWORD = 'win' + crypto.randomInt(100000, 999999);
+    fs.writeFileSync(WIN_PW_FILE, WINNERS_PASSWORD + '\n');
+  }
+}
 
 // ---------- 資料 ----------
-const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false, lenientPass: false, lenientCount: 0, musicStyle: 'edm', wideStage: false }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
+const EMPTY = { settings: { title: '世新大學校友抽獎活動', open: true, maskName: false, prize: '', showFsBtn: false, lenientPass: false, lenientCount: 0, musicStyle: 'edm', wideStage: false, stageW: 3840, stageH: 1098 }, design: { vars: {}, texts: {}, customCss: '', assets: {} }, entries: [], winners: [] };
 let db = EMPTY;
 if (fs.existsSync(DB_FILE)) {
   try { const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); db = { ...EMPTY, ...saved, settings: { ...EMPTY.settings, ...saved.settings }, design: { ...EMPTY.design, assets: {}, ...saved.design } }; } catch (e) { console.error('db.json 讀取失敗，另存備份', e); fs.copyFileSync(DB_FILE, DB_FILE + '.broken-' + Date.now()); }
@@ -186,6 +196,15 @@ function isDesigner(req) {
   const t = cookie(req, 'dsid');
   const exp = t && designSessions.get(t);
   if (!exp || exp < Date.now()) { if (t) designSessions.delete(t); return false; }
+  return true;
+}
+// 中獎紀錄頁獨立登入：只能讀中獎名單；12 小時後失效
+const winnerSessions = new Map(); // token -> 到期時間
+const WINNERS_TTL = 12 * 3600_000;
+function isWinnerViewer(req) {
+  const t = cookie(req, 'wsid');
+  const exp = t && winnerSessions.get(t);
+  if (!exp || exp < Date.now()) { if (t) winnerSessions.delete(t); return false; }
   return true;
 }
 const DESIGN_APIS = new Set(['/api/admin/design', '/api/admin/upload', '/api/admin/design-logout']);
@@ -365,6 +384,7 @@ async function handle(req, res) {
   if (m === 'GET' && (p === '/admin' || p === '/admin/')) return serveStatic(req, res, 'admin.html');
   if (m === 'GET' && (p === '/draw' || p === '/draw/')) return serveStatic(req, res, 'draw.html');
   if (m === 'GET' && (p === '/design' || p === '/design/')) return serveStatic(req, res, 'design.html');
+  if (m === 'GET' && (p === '/winners' || p === '/winners/')) return serveStatic(req, res, 'winners.html');
   if (m === 'GET' && /^\/assets\/[\w.-]+$/.test(p)) return serveStatic(req, res, p.slice(1));
   let bm;
   if (m === 'GET' && (bm = p.match(/^\/brand\/([a-z]+)$/))) return serveBrand(req, res, bm[1], url.searchParams.has('default'));
@@ -387,6 +407,26 @@ async function handle(req, res) {
     if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
     if (v.skipped) return send(res, 200, { ok: true, already: false, no: '', name: v.name, dept: '' });
     return send(res, 200, { ok: true, already: !!v.already, no: v.entry.no, name: v.entry.name, dept: v.entry.dept });
+  }
+
+  // 中獎紀錄頁（/winners）：獨立密碼、唯讀
+  if (m === 'POST' && p === '/api/winners/login') {
+    if (limited('login:' + clientIp(req), 10)) return send(res, 429, { error: '嘗試太多次，請稍候一分鐘。' });
+    let b; try { b = await readBody(req); } catch { return send(res, 400, { error: '資料格式錯誤' }); }
+    const a = Buffer.from(String(b.password || '')), c = Buffer.from(WINNERS_PASSWORD);
+    if (a.length !== c.length || !crypto.timingSafeEqual(a, c)) return send(res, 401, { error: '密碼錯誤' });
+    const t = crypto.randomBytes(24).toString('hex');
+    winnerSessions.set(t, Date.now() + WINNERS_TTL);
+    return send(res, 200, { ok: true }, { 'Set-Cookie': `wsid=${t}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${WINNERS_TTL / 1000}` });
+  }
+  if (m === 'POST' && p === '/api/winners/logout') { winnerSessions.delete(cookie(req, 'wsid')); return send(res, 200, { ok: true }, { 'Set-Cookie': 'wsid=; Path=/; Max-Age=0' }); }
+  if (m === 'GET' && p === '/api/winners') {
+    // 已登入後台的人從後台點過來不用再輸入密碼
+    if (!isWinnerViewer(req) && !isAdmin(req)) return send(res, 401, { error: '請先登入' });
+    return send(res, 200, {
+      title: db.settings.title,
+      winners: db.winners.map((w) => ({ ...w, idNo: (db.entries.find((e) => e.id === w.entryId) || {}).idNo || '' })),
+    });
   }
 
   // 後台登入
@@ -463,7 +503,10 @@ async function handle(req, res) {
       if (typeof b.maskName === 'boolean') db.settings.maskName = b.maskName;
       if (typeof b.showFsBtn === 'boolean') db.settings.showFsBtn = b.showFsBtn;
       if (typeof b.lenientPass === 'boolean') db.settings.lenientPass = b.lenientPass;
-      if (typeof b.wideStage === 'boolean') db.settings.wideStage = b.wideStage; // 抽獎畫面 3840x1098 超寬 LED 版面
+      if (typeof b.wideStage === 'boolean') db.settings.wideStage = b.wideStage; // 抽獎畫面改用自訂 LED 版面尺寸
+      // LED 版面寬高（px，預設 3840x1098）
+      if (Number.isFinite(b.stageW) && b.stageW > 0) db.settings.stageW = Math.round(Math.min(10000, Math.max(320, b.stageW)));
+      if (Number.isFinite(b.stageH) && b.stageH > 0) db.settings.stageH = Math.round(Math.min(10000, Math.max(200, b.stageH)));
       if (['edm', 'drums', 'rock'].includes(b.musicStyle)) db.settings.musicStyle = b.musicStyle; // 抽獎配樂風格
       if (b.resetLenientCount === true) db.settings.lenientCount = 0;
       if (typeof b.title === 'string' && b.title.trim()) db.settings.title = clean(b.title, 60);
