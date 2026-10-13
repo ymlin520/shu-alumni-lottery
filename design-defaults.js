@@ -1,6 +1,6 @@
 // 前台（登記頁 / 抽獎頁）可在 /design 調整的 CSS 變數與文字預設值
 const vars = [
-  // 配色（世新 70 週年校友返校日：紅金）
+  // 配色（世新 70 周年校友返校日：紅金）
   { key: 'bg', group: '配色', label: '頁面底色（上）', type: 'color', default: '#6d0a10' },
   { key: 'bg2', group: '配色', label: '頁面底色（下）', type: 'color', default: '#4e0509' },
   { key: 'glow1', group: '配色', label: '中央紅光', type: 'color', default: '#c0161f' },
@@ -76,7 +76,7 @@ const vars = [
 
 const texts = [
   // 登記頁
-  { key: 'reg.brand', group: '登記頁', label: '左上角名稱', default: '世新大學 70 週年' },
+  { key: 'reg.brand', group: '登記頁', label: '左上角名稱', default: '世新大學 70 周年' },
   { key: 'reg.badge', group: '登記頁', label: '身分標籤（標題上方）', default: '校友場　ALUMNI' },
   { key: 'reg.watermark', group: '登記頁', label: '背景浮水印（留空不顯示）', default: 'ALUMNI' },
   { key: 'reg.title', group: '登記頁', label: '大標題（也是瀏覽器分頁名稱）', default: '世新大學校友抽獎活動' },
@@ -96,7 +96,7 @@ const texts = [
   { key: 'reg.closedTitle', group: '登記頁', label: '截止畫面標題', default: '登記已截止' },
   { key: 'reg.closedText', group: '登記頁', label: '截止畫面內容', default: '本次活動已停止登記，感謝您的關注。' },
   // 抽獎頁
-  { key: 'draw.brand', group: '抽獎頁', label: '左上角名稱', default: '世新大學 70 週年' },
+  { key: 'draw.brand', group: '抽獎頁', label: '左上角名稱', default: '世新大學 70 周年' },
   { key: 'draw.badge', group: '抽獎頁', label: '身分標籤（頂端中央）', default: '校友場　ALUMNI' },
   { key: 'draw.watermark', group: '抽獎頁', label: '背景浮水印（留空不顯示）', default: 'ALUMNI' },
   { key: 'draw.heading', group: '抽獎頁', label: '大標題', default: '今天的幸運校友是誰？' },
