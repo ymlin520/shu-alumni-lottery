@@ -153,8 +153,8 @@
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
   /* 中獎者的身分證字號（中間已遮掉），小小地放在揭曉區右下角給本人核對 */
   /* 數字由設計後台的拉條給，單位在這裡補上 */
-  /* 固定在畫面右下角（離右邊 8%：螢幕比例不同時左右最多被裁 7%，不會切到），高度和「開始抽獎」按鈕差不多 */
-  .reveal .winner-id { position: absolute; right: calc(8 * var(--vw)); bottom: calc(var(--winner-id-gap, 6) * var(--vh)); margin: 0; text-align: right;
+  /* 固定在畫面右下角，離右邊、離底部的距離都可以在設計後台調（螢幕比例不同時左右最多被裁 7%，太靠右可能被切到） */
+  .reveal .winner-id { position: absolute; right: calc(var(--winner-id-right, 3) * var(--vw)); bottom: calc(var(--winner-id-gap, 14) * var(--vh)); margin: 0; text-align: right;
     font-size: calc(var(--winner-id-size, 92) * 1px);
     letter-spacing: .22em; font-weight: 700; color: var(--muted); opacity: .85; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
