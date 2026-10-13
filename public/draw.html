@@ -153,8 +153,8 @@
   .reveal .meta { color: var(--muted); font-size: clamp(34px, calc(1.6 * var(--vw)), 47px); margin-top: 13px; }
   /* 中獎者的身分證字號（中間已遮掉），小小地放在揭曉區右下角給本人核對 */
   /* 數字由設計後台的拉條給，單位在這裡補上 */
-  /* 固定在畫面右下角，離右邊、離底部的距離都可以在設計後台調（螢幕比例不同時左右最多被裁 7%，太靠右可能被切到） */
-  .reveal .winner-id { position: absolute; right: calc(var(--winner-id-right, 3) * var(--vw)); bottom: calc(var(--winner-id-gap, 14) * var(--vh)); margin: 0; text-align: right;
+  /* 固定在畫面右上角，離右邊、離頂部的距離都可以在設計後台調（螢幕比例不同時左右最多被裁 7%，太靠右可能被切到） */
+  .reveal .winner-id { position: absolute; right: calc(var(--winner-id-right, 3) * var(--vw)); top: calc(var(--winner-id-top, 8) * var(--vh)); margin: 0; text-align: right;
     font-size: calc(var(--winner-id-size, 92) * 1px);
     letter-spacing: .22em; font-weight: 700; color: var(--muted); opacity: .85; }
   .nm-wrap { position: relative; display: inline-block; isolation: isolate; margin-top: var(--name-gap, calc(3.5 * var(--vh))); }
@@ -199,7 +199,6 @@
     --stage-w: 3840px !important; --stage-h: 1098px !important; --machine-vh: 50 !important;
     --winner-size: min(calc(36 * var(--vh)), calc(16 * var(--vw)), 660px) !important;
     --dept-size: min(calc(11 * var(--vh)), calc(5 * var(--vw)), 200px) !important;
-    --winner-id-gap: 7 !important;
   }
   html.wide-stage .stage.revealing .draw-btn { bottom: calc(6.5 * var(--vh)); }
   .stage.revealing .draw-btn:active { transform: translateX(-50%) translateY(4px); }
