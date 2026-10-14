@@ -240,13 +240,17 @@ function checkIn(b) {
     }
     return { code: 404, error: '查無此身分證號，請確認輸入是否正確，或洽現場服務台。', field: 'idNo' };
   }
-  if (normName(entry.name) !== normName(name)) return { code: 400, error: '姓名有誤，請確認與校友名冊上的姓名一致。', field: 'name' };
-  if (entry.registered) return { already: true, entry };
-  entry.registered = true;
-  entry.registeredAt = new Date().toISOString();
-  journal({ id: entry.id, registered: true, registeredAt: entry.registeredAt });
-  save(true);
-  return { entry };
+  // 只核對身分證號：號碼在名冊裡就算登記成功，姓名打錯也照樣登記。
+  // 姓名不符時回傳的是對方自己打的姓名、不帶系所，免得用號碼就能查出名冊上的真名。
+  const nameOk = normName(entry.name) === normName(name);
+  const already = !!entry.registered;
+  if (!already) {
+    entry.registered = true;
+    entry.registeredAt = new Date().toISOString();
+    journal({ id: entry.id, registered: true, registeredAt: entry.registeredAt });
+    save(true);
+  }
+  return { already, entry, nameOk, name };
 }
 function parseEntry(b, selfId) {
   const idType = b.idType === 'passport' ? 'passport' : 'twid';
@@ -406,7 +410,8 @@ async function handle(req, res) {
     const v = checkIn(b);
     if (v.error) return send(res, v.code || 400, { error: v.error, field: v.field });
     if (v.skipped) return send(res, 200, { ok: true, already: false, no: '', name: v.name, dept: '' });
-    return send(res, 200, { ok: true, already: !!v.already, no: v.entry.no, name: v.entry.name, dept: v.entry.dept });
+    if (!v.nameOk) return send(res, 200, { ok: true, already: v.already, no: '', name: v.name, dept: '' });
+    return send(res, 200, { ok: true, already: v.already, no: v.entry.no, name: v.entry.name, dept: v.entry.dept });
   }
 
   // 中獎紀錄頁（/winners）：獨立密碼、唯讀
